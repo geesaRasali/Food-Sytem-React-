@@ -28,7 +28,8 @@ const AddMaterial = ({ url, adminToken }) => {
         price: '',
         category: materialCategories[0],
         supplier: '',
-        quantity: ''
+        quantity: '',
+        unit: 'kg'
     })
 
     console.log("stockMaterials keys:", Object.keys(stockMaterials));
@@ -74,6 +75,7 @@ const AddMaterial = ({ url, adminToken }) => {
         formData.append('category', data.category)
         formData.append('supplier', data.supplier)
         formData.append('quantity', Number(data.quantity) || 0)
+        formData.append('unit', data.unit)
         
         if (image) {
             formData.append('image', image)
@@ -94,7 +96,8 @@ const AddMaterial = ({ url, adminToken }) => {
                     price: '',
                     category: materialCategories[0],
                     supplier: suppliersList[0]?.name || '',
-                    quantity: ''
+                    quantity: '',
+                    unit: 'kg'
                 })
                 setImage(false)
                 setSelectedPredefined(null)
@@ -196,7 +199,7 @@ const AddMaterial = ({ url, adminToken }) => {
                                 )}
 
                                 {/* Pricing, Category, Supplier & Quantity */}
-                                <div className='grid grid-cols-1 gap-6 md:grid-cols-4'>
+                                <div className='grid grid-cols-1 gap-6 md:grid-cols-5'>
                                     <div className='space-y-2'>
                                         <label className='ml-1 text-sm font-bold text-zinc-700 dark:text-zinc-300'>Category</label>
                                         <select

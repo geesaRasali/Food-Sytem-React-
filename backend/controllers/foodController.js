@@ -133,6 +133,7 @@ const addFood = async (req, res) => {
     image: image_filename,
     supplier: req.body.supplier || "",
     quantity: Number(req.body.quantity) || 0,
+    unit: req.body.unit || "units"
   });
 
   try {
@@ -145,7 +146,8 @@ const addFood = async (req, res) => {
         materialName: food.name,
         supplierName: food.supplier,
         quantity: food.quantity,
-        price: food.price
+        price: food.price,
+        unit: food.unit
       });
       await supply.save();
     }
@@ -190,6 +192,7 @@ const updateFood = async (req, res) => {
       category: req.body.category ?? existingFood.category,
       supplier: req.body.supplier ?? existingFood.supplier,
       quantity: req.body.quantity ?? existingFood.quantity,
+      unit: req.body.unit ?? existingFood.unit,
     };
 
     if (req.file) {
@@ -210,7 +213,8 @@ const updateFood = async (req, res) => {
         materialName: updatedFood.name,
         supplierName: updatedFood.supplier,
         quantity: diff,
-        price: updatedFood.price
+        price: updatedFood.price,
+        unit: updatedFood.unit
       });
       await supply.save();
     }
@@ -286,7 +290,8 @@ const addStockQuantity = async (req, res) => {
         materialName: food.name,
         supplierName: food.supplier,
         quantity: diff,
-        price: food.price
+        price: food.price,
+        unit: food.unit
       });
       await supply.save();
     }

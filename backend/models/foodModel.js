@@ -8,7 +8,8 @@ const foodSchema = new mongoose.Schema(
         image:{type:String,required:true},
         category:{type:String,required:true},
         supplier:{type:String},
-        quantity:{type:Number,default:0}
+        quantity:{type:String,required:0},
+        unit:{type:String,required:true}
     }
 )
 

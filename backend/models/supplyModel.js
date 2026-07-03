@@ -6,6 +6,7 @@ const supplySchema = new mongoose.Schema({
     supplierName: { type: String, required: true },
     quantity: { type: Number, required: true },
     price: { type: Number, required: true },
+    unit: { type: String, default: 'units' },
     date: { type: Date, default: Date.now }
 });
 

@@ -217,10 +217,10 @@ const StockList = ({ url, adminToken }) => {
                               onChange={e => setEditQuantity(Math.max(0, Number(e.target.value)))}
                               className="w-16 px-2 py-1 text-xs rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 focus:border-orange-500 focus:outline-none font-bold"
                             />
-                            <span className="text-xs text-zinc-400">units</span>
+                            <span className="text-xs text-zinc-400">{item.unit || 'units'}</span>
                           </div>
                         ) : (
-                          `${stock} units`
+                          `${stock} ${item.unit || 'units'}`
                         )}
                       </td>
 
@@ -404,7 +404,7 @@ const SupplyHistory = ({ url, adminToken }) => {
                     </td>
                     <td className="py-4 font-bold text-zinc-850 dark:text-zinc-200">{log.materialName}</td>
                     <td className="py-4 font-semibold text-zinc-700 dark:text-zinc-350">{log.supplierName}</td>
-                    <td className="py-4 font-bold text-orange-600">{log.quantity} units</td>
+                    <td className="py-4 font-bold text-orange-600">{log.quantity} {log.unit || 'units'}</td>
                     <td className="py-4 pr-2 text-right font-semibold text-zinc-700 dark:text-zinc-300">LKR {log.price}</td>
                   </tr>
                 ))}
