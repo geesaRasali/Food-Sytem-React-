@@ -8,6 +8,7 @@ import cartRouter from "./routes/cartRoute.js";
 import orderRouter from "./routes/orderRoute.js";
 import chatRouter from "./routes/chatRoute.js";
 import contactRouter from "./routes/contactRoute.js";
+import supplierRouter from "./routes/supplierRoute.js";
 import { ensureInitialAdminUser } from "./utils/ensureAdminUser.js";
 
 //app config
@@ -26,6 +27,7 @@ app.use("/api/cart", cartRouter);
 app.use("/api/order", orderRouter);
 app.use("/api/chat", chatRouter);
 app.use("/api/contact", contactRouter);
+app.use("/api/supplier", supplierRouter);
 
 app.get("/", (req, res) => {
   res.send("API Working");

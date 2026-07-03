@@ -5,6 +5,8 @@ import {
   updateFood,
   listFood,
   removeFood,
+  addStockQuantity,
+  listSupplies,
 } from "../controllers/foodController.js";
 import authMiddleware from "../middleware/auth.js";
 import { requireRoles } from "../middleware/authorize.js";
@@ -27,5 +29,7 @@ foodRouter.post("/add", authMiddleware, requireRoles(...FOOD_WRITE_ROLES), uploa
 foodRouter.post("/update", authMiddleware, requireRoles(...FOOD_WRITE_ROLES), upload.single("image"), updateFood);
 foodRouter.get("/list", listFood);
 foodRouter.post("/remove", authMiddleware, requireRoles(...FOOD_WRITE_ROLES), removeFood);
+foodRouter.post("/add-stock", authMiddleware, requireRoles(...FOOD_WRITE_ROLES), addStockQuantity);
+foodRouter.get("/supplies", listSupplies);
 
 export default foodRouter;

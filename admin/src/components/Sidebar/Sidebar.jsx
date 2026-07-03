@@ -244,7 +244,7 @@ const Sidebar = ({ adminUser, pendingMessagesCount = 0 }) => {
                         <span>Add Supplier</span>
                       </NavLink>
                       <NavLink
-                        to="/stock-control/add-item"
+                        to="/stock-control/add-material"
                         className={({ isActive }) =>
                           `flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
                             isActive
@@ -254,21 +254,9 @@ const Sidebar = ({ adminUser, pendingMessagesCount = 0 }) => {
                         }
                       >
                         <FiRepeat className="w-4 h-4 text-orange-500/80 dark:text-orange-400/80" />
-                        <span>Add Item</span>
+                        <span>Add Material</span>
                       </NavLink>
-                      <NavLink
-                        to="/stock-control/add-stock"
-                        className={({ isActive }) =>
-                          `flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                            isActive
-                              ? "bg-orange-50 text-orange-600 dark:bg-[#2a170c] dark:text-orange-400"
-                              : "text-zinc-550 hover:bg-orange-50/65 hover:text-orange-600 dark:text-[#a099b0]/80 dark:hover:bg-[#15121b]/80 dark:hover:text-white"
-                          }`
-                        }
-                      >
-                        <FiPlusCircle className="w-4 h-4 text-orange-500/80 dark:text-orange-400/80" />
-                        <span>Add Stock</span>
-                      </NavLink>
+
                       <NavLink
                         to="/stock-control/stock-list"
                         className={({ isActive }) =>
@@ -282,8 +270,9 @@ const Sidebar = ({ adminUser, pendingMessagesCount = 0 }) => {
                         <FiList className="w-4 h-4 text-orange-500/80 dark:text-orange-400/80" />
                         <span>Stock List</span>
                       </NavLink>
+
                       <NavLink
-                        to="/stock-control/add-new-item"
+                        to="/stock-control/supply-history"
                         className={({ isActive }) =>
                           `flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
                             isActive
@@ -293,8 +282,9 @@ const Sidebar = ({ adminUser, pendingMessagesCount = 0 }) => {
                         }
                       >
                         <FiPackage className="w-4 h-4 text-orange-500/80 dark:text-orange-400/80" />
-                        <span>Add New Item</span>
+                        <span>Supply History</span>
                       </NavLink>
+
                       <NavLink
                         to="/stock-control/kitchen-transfer-list"
                         className={({ isActive }) =>

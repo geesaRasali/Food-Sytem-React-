@@ -1,4 +1,5 @@
 import foodModel from "../models/foodModel.js";
+import supplyModel from "../models/supplyModel.js";
 import fs from "fs";
 import path from "path";
 
@@ -104,8 +105,13 @@ const addFood = async (req, res) => {
   console.log("Request body:", req.body); // Debug log
   console.log("Request file:", req.file); // Debug log
 
-  // Check if file is uploaded
-  if (!req.file) {
+  // Check if file is uploaded or default image is provided
+  let image_filename = "";
+  if (req.file) {
+    image_filename = `${req.file.filename}`;
+  } else if (req.body.image) {
+    image_filename = req.body.image;
+  } else {
     return res.json({ success: false, message: "Image is required" });
   }
 
@@ -119,18 +125,31 @@ const addFood = async (req, res) => {
     return res.json({ success: false, message: "All fields are required" });
   }
 
-  let image_filename = `${req.file.filename}`;
-
   const food = new foodModel({
     name: req.body.name,
     description: req.body.description,
     price: req.body.price,
     category: req.body.category,
     image: image_filename,
+    supplier: req.body.supplier || "",
+    quantity: Number(req.body.quantity) || 0,
   });
 
   try {
     await food.save();
+
+    // Log initial supply in transactions history if quantity is set
+    if (food.quantity > 0 && food.supplier) {
+      const supply = new supplyModel({
+        materialId: food._id,
+        materialName: food.name,
+        supplierName: food.supplier,
+        quantity: food.quantity,
+        price: food.price
+      });
+      await supply.save();
+    }
+
     res.json({ success: true, message: "Food Added" });
   } catch (error) {
     console.log(error);
@@ -169,6 +188,8 @@ const updateFood = async (req, res) => {
       description: req.body.description ?? existingFood.description,
       price: req.body.price ?? existingFood.price,
       category: req.body.category ?? existingFood.category,
+      supplier: req.body.supplier ?? existingFood.supplier,
+      quantity: req.body.quantity ?? existingFood.quantity,
     };
 
     if (req.file) {
@@ -180,6 +201,19 @@ const updateFood = async (req, res) => {
       new: true,
       runValidators: true,
     });
+
+    // Log supply update transaction if quantity has been increased
+    const diff = Number(req.body.quantity || 0) - Number(existingFood.quantity || 0);
+    if (diff > 0 && updatedFood.supplier) {
+      const supply = new supplyModel({
+        materialId: updatedFood._id,
+        materialName: updatedFood.name,
+        supplierName: updatedFood.supplier,
+        quantity: diff,
+        price: updatedFood.price
+      });
+      await supply.save();
+    }
 
     res.json({ success: true, message: "Food Updated", data: updatedFood });
   } catch (error) {
@@ -228,4 +262,51 @@ const getFoodByCategory = async (req, res) => {
   }
 };
 
-export { addFood, updateFood, listFood, removeFood, getFoodCategories, getFoodByCategory };
+// Increment stock quantity
+const addStockQuantity = async (req, res) => {
+  const { id, quantity } = req.body;
+  if (!id || quantity === undefined) {
+    return res.json({ success: false, message: "ID and quantity are required" });
+  }
+
+  try {
+    const food = await foodModel.findById(id);
+    if (!food) {
+      return res.json({ success: false, message: "Food not found" });
+    }
+
+    const diff = Number(quantity);
+    food.quantity = (food.quantity || 0) + diff;
+    await food.save();
+
+    // Log supply transaction log
+    if (diff > 0 && food.supplier) {
+      const supply = new supplyModel({
+        materialId: food._id,
+        materialName: food.name,
+        supplierName: food.supplier,
+        quantity: diff,
+        price: food.price
+      });
+      await supply.save();
+    }
+
+    res.json({ success: true, message: "Stock quantity updated successfully", quantity: food.quantity });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: "Error updating stock quantity" });
+  }
+};
+
+// Fetch supply transaction history log
+const listSupplies = async (req, res) => {
+  try {
+    const supplies = await supplyModel.find({}).sort({ date: -1 });
+    res.json({ success: true, data: supplies });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: "Error fetching supply history" });
+  }
+};
+
+export { addFood, updateFood, listFood, removeFood, getFoodCategories, getFoodByCategory, addStockQuantity, listSupplies };

@@ -27,12 +27,32 @@ const Add = ({ url, adminToken }) => {
         return ['Salad', 'Rolls', 'Deserts', 'Sandwich', 'Cake', 'Pure Veg', 'Pasta', 'Noodles', 'Koththu']
     })()
 
+    const [suppliersList, setSuppliersList] = useState([])
     const [data, setData] = useState({
         name: '',
         description: '',
         price: '',
         category: editingFood ? editingFood.category : (categoriesList[0] || 'Salad'),
+        supplier: editingFood ? (editingFood.supplier || '') : '',
     })
+
+    useEffect(() => {
+        const fetchSuppliers = async () => {
+            try {
+                const response = await axios.get(`${url}/api/supplier/list`, {
+                    headers: { token: adminToken, Authorization: `Bearer ${adminToken}` }
+                })
+                if (response.data.success) {
+                    setSuppliersList(response.data.data)
+                }
+            } catch (err) {
+                console.error("Failed to fetch suppliers", err)
+            }
+        }
+        if (url && adminToken) {
+            fetchSuppliers()
+        }
+    }, [url, adminToken])
 
     useEffect(() => {
         if (editingFood) {
@@ -41,11 +61,13 @@ const Add = ({ url, adminToken }) => {
                 description: editingFood.description || '',
                 price: editingFood.price ?? '',
                 category: editingFood.category || 'Salad',
+                supplier: editingFood.supplier || '',
             })
         } else {
             setData((prev) => ({
                 ...prev,
                 category: categoriesList[0] || 'Salad',
+                supplier: '',
             }))
         }
     }, [editingFood])
@@ -63,6 +85,7 @@ const Add = ({ url, adminToken }) => {
         formData.append('description', data.description)
         formData.append('price', Number(data.price))
         formData.append('category', data.category)
+        formData.append('supplier', data.supplier)
         if (image) {
             formData.append('image', image)
         }
@@ -77,7 +100,7 @@ const Add = ({ url, adminToken }) => {
                 headers: { token: adminToken, Authorization: `Bearer ${adminToken}` },
             })
             if (response.data.success) {
-                setData({ name: '', description: '', price: '', category: 'Salad' })
+                setData({ name: '', description: '', price: '', category: 'Salad', supplier: '' })
                 setImage(false)
                 toast.success(response.data.message)
                 navigate('/list')
@@ -161,36 +184,52 @@ const Add = ({ url, adminToken }) => {
                                     />
                                 </div>
 
-                                {/* Pricing & Category */}
-                                <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
-                                    <div className='space-y-2'>
-                                        <label className='ml-1 text-sm font-bold text-zinc-700 dark:text-zinc-300'>Category</label>
-                                        <select
-                                            name='category'
-                                            onChange={onChangeHandler}
-                                            value={data.category}
-                                            className='w-full cursor-pointer rounded-2xl border-none bg-white px-5 py-4 text-zinc-900 outline-none transition focus:bg-white focus:ring-2 focus:ring-orange-400 dark:bg-gray-800 dark:text-white dark:focus:bg-gray-800'
-                                        >
-                                            {categoriesList.map((c) => (
-                                                <option key={c} value={c} className='bg-white text-zinc-900 dark:bg-gray-800 dark:text-gray-200'>
-                                                    {c}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className='space-y-2'>
-                                        <label className='ml-1 text-sm font-bold text-zinc-700 dark:text-zinc-300'>Price (LKR)</label>
-                                        <input
-                                            name='price'
-                                            type='number'
-                                            onChange={onChangeHandler}
-                                            value={data.price}
-                                            className='w-full rounded-2xl border-none bg-white px-5 py-4 text-zinc-900 outline-none transition placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-orange-400 dark:bg-gray-800 dark:text-white dark:placeholder:text-gray-500 dark:focus:bg-gray-800'
-                                            placeholder='0.00'
-                                            required
-                                        />
-                                    </div>
-                                </div>
+                                 {/* Pricing, Category & Supplier */}
+                                 <div className='grid grid-cols-1 gap-6 md:grid-cols-3'>
+                                     <div className='space-y-2'>
+                                         <label className='ml-1 text-sm font-bold text-zinc-700 dark:text-zinc-300'>Category</label>
+                                         <select
+                                             name='category'
+                                             onChange={onChangeHandler}
+                                             value={data.category}
+                                             className='w-full cursor-pointer rounded-2xl border-none bg-white px-5 py-4 text-zinc-900 outline-none transition focus:bg-white focus:ring-2 focus:ring-orange-400 dark:bg-gray-800 dark:text-white dark:focus:bg-gray-800'
+                                         >
+                                             {categoriesList.map((c) => (
+                                                 <option key={c} value={c} className='bg-white text-zinc-900 dark:bg-gray-800 dark:text-gray-200'>
+                                                     {c}
+                                                 </option>
+                                             ))}
+                                         </select>
+                                     </div>
+                                     <div className='space-y-2'>
+                                         <label className='ml-1 text-sm font-bold text-zinc-700 dark:text-zinc-300'>Supplier</label>
+                                         <select
+                                             name='supplier'
+                                             onChange={onChangeHandler}
+                                             value={data.supplier}
+                                             className='w-full cursor-pointer rounded-2xl border-none bg-white px-5 py-4 text-zinc-900 outline-none transition focus:bg-white focus:ring-2 focus:ring-orange-400 dark:bg-gray-800 dark:text-white dark:focus:bg-gray-800'
+                                         >
+                                             <option value="">No Supplier</option>
+                                             {suppliersList.map((s) => (
+                                                 <option key={s._id} value={s.name} className='bg-white text-zinc-900 dark:bg-gray-800 dark:text-gray-200'>
+                                                     {s.name}
+                                                 </option>
+                                             ))}
+                                         </select>
+                                     </div>
+                                     <div className='space-y-2'>
+                                         <label className='ml-1 text-sm font-bold text-zinc-700 dark:text-zinc-300'>Price (LKR)</label>
+                                         <input
+                                             name='price'
+                                             type='number'
+                                             onChange={onChangeHandler}
+                                             value={data.price}
+                                             className='w-full rounded-2xl border-none bg-white px-5 py-4 text-zinc-900 outline-none transition placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-orange-400 dark:bg-gray-800 dark:text-white dark:placeholder:text-gray-500 dark:focus:bg-gray-800'
+                                             placeholder='0.00'
+                                             required
+                                         />
+                                     </div>
+                                 </div>
                             </div>
 
                             <button

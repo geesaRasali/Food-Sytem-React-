@@ -1,10 +1,22 @@
 import React, { useState, useEffect } from 'react'
 import { Route, Routes, useNavigate } from 'react-router-dom'
-import { FiPackage, FiPlusCircle, FiRepeat, FiList, FiTruck, FiUserPlus, FiArrowLeft, FiPlus, FiSearch } from 'react-icons/fi'
+import { FiPackage, FiPlusCircle, FiRepeat, FiList, FiTruck, FiUserPlus, FiArrowLeft, FiPlus, FiSearch, FiEdit2, FiTrash2 } from 'react-icons/fi'
 import axios from 'axios'
 import { toast } from 'react-toastify'
 import SupplierManagement from '../SupplierManagement/SupplierManagement'
 import Add from '../Add/Add'
+import AddMaterial from './AddMaterial'
+
+const materialCategories = [
+  'bakery and grains',
+  'Beverages',
+  'Dairy and egg',
+  'Meat & Seafood',
+  'Vegetables',
+  'Spices',
+  'Oils & Dressings',
+  'Baking & Sweeteners'
+]
 
 // 1. Grid Portal View (Default)
 const StockControlGrid = () => {
@@ -12,10 +24,9 @@ const StockControlGrid = () => {
 
   const stockSections = [
     { label: 'Add Supplier', icon: FiUserPlus, description: 'Create and manage supplier records.', href: '/stock-control/add-supplier' },
-    { label: 'Add Item', icon: FiRepeat, description: 'Quickly add items to stock workflows.', href: '/stock-control/add-item' },
-    { label: 'Add Stock', icon: FiPlusCircle, description: 'Record incoming stock quantities.', href: '/stock-control/add-stock' },
+    { label: 'Add Material', icon: FiRepeat, description: 'Quickly add raw materials to stock workflows.', href: '/stock-control/add-material' },
     { label: 'Stock List', icon: FiList, description: 'Review current stock levels and statuses.', href: '/stock-control/stock-list' },
-    { label: 'Add New Item', icon: FiPackage, description: 'Create new inventory items for the kitchen.', href: '/stock-control/add-new-item' },
+    { label: 'Supply History', icon: FiPackage, description: 'View logs of incoming supplier shipments.', href: '/stock-control/supply-history' },
     { label: 'Kitchen Transfer List', icon: FiTruck, description: 'Track items moved to kitchen operations.', href: '/stock-control/kitchen-transfer-list' },
   ]
 
@@ -52,145 +63,75 @@ const StockControlGrid = () => {
   )
 }
 
-// 2. Add Stock Component
-const AddStock = ({ url, adminToken }) => {
-  const navigate = useNavigate()
-  const [foods, setFoods] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [formData, setFormData] = useState({
-    foodId: '',
-    supplier: 'Fresh Farms Ltd',
-    quantity: '',
-    notes: ''
-  })
-
-  useEffect(() => {
-    const fetchFoods = async () => {
-      try {
-        const res = await axios.get(`${url}/api/food/list`)
-        if (res.data.success) {
-          setFoods(res.data.data)
-          if (res.data.data.length > 0) {
-            setFormData(prev => ({ ...prev, foodId: res.data.data[0]._id }))
-          }
-        }
-      } catch (err) {
-        toast.error("Failed to load inventory items.")
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchFoods()
-  }, [url])
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    if (!formData.quantity || Number(formData.quantity) <= 0) {
-      toast.warn("Please enter a valid stock quantity.")
-      return
-    }
-    toast.success("Incoming stock recorded successfully!")
-    setFormData(prev => ({ ...prev, quantity: '', notes: '' }))
-  }
-
-  return (
-    <div className="p-6 md:p-8 max-w-2xl mx-auto animate-fadeIn text-zinc-900 dark:text-zinc-100">
-      <button onClick={() => navigate('/stock-control')} className="flex items-center gap-2 text-sm font-semibold text-zinc-500 hover:text-orange-600 mb-6 transition-colors">
-        <FiArrowLeft className="w-4 h-4" /> Back to Stock Control
-      </button>
-
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 md:p-8 shadow-sm">
-        <h2 className="text-2xl font-black mb-6 tracking-tight">Record Incoming Stock</h2>
-
-        {loading ? (
-          <p className="text-sm text-zinc-500">Loading products...</p>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Select Item</label>
-              <select
-                value={formData.foodId}
-                onChange={e => setFormData({ ...formData, foodId: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent focus:border-orange-500 focus:outline-none dark:bg-zinc-950 font-medium"
-              >
-                {foods.map(f => (
-                  <option key={f._id} value={f._id}>{f.name} ({f.category})</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Supplier</label>
-              <select
-                value={formData.supplier}
-                onChange={e => setFormData({ ...formData, supplier: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent focus:border-orange-500 focus:outline-none dark:bg-zinc-950 font-medium"
-              >
-                <option value="Fresh Farms Ltd">Fresh Farms Ltd</option>
-                <option value="Supreme Dairy Corp">Supreme Dairy Corp</option>
-                <option value="Global Spices & Grains">Global Spices & Grains</option>
-              </select>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Quantity Added</label>
-              <input
-                type="number"
-                placeholder="e.g. 50"
-                value={formData.quantity}
-                onChange={e => setFormData({ ...formData, quantity: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent focus:border-orange-500 focus:outline-none dark:bg-zinc-950 font-medium"
-                required
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Notes / Remarks</label>
-              <textarea
-                placeholder="Batch number, expiry dates, or warehouse shelf location..."
-                rows="3"
-                value={formData.notes}
-                onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent focus:border-orange-500 focus:outline-none dark:bg-zinc-950 font-medium resize-none"
-              />
-            </div>
-
-            <button type="submit" className="w-full py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold shadow-md transition-all active:scale-[0.98]">
-              Record Stock Entry
-            </button>
-          </form>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// 3. Stock List Component
 const StockList = ({ url, adminToken }) => {
   const navigate = useNavigate()
   const [foods, setFoods] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
+  const [editingId, setEditingId] = useState(null)
+  const [editPrice, setEditPrice] = useState(0)
+  const [editQuantity, setEditQuantity] = useState(0)
+
+  const fetchFoods = async () => {
+    try {
+      const res = await axios.get(`${url}/api/food/list`)
+      if (res.data.success) {
+        const rawMaterials = res.data.data.filter(item => 
+          materialCategories.includes(item.category)
+        )
+        setFoods(rawMaterials)
+      }
+    } catch (err) {
+      toast.error("Failed to load stock list.")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchFoods = async () => {
-      try {
-        const res = await axios.get(`${url}/api/food/list`)
-        if (res.data.success) {
-          setFoods(res.data.data)
-        }
-      } catch (err) {
-        toast.error("Failed to load stock list.")
-      } finally {
-        setLoading(false)
-      }
-    }
     fetchFoods()
   }, [url])
 
-  const getStock = (name) => {
-    const charSum = name.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
-    return charSum % 14; 
+  const handleSave = async (id) => {
+    try {
+      const response = await axios.post(`${url}/api/food/update`, {
+        id,
+        price: Number(editPrice),
+        quantity: Number(editQuantity)
+      }, {
+        headers: { token: adminToken, Authorization: `Bearer ${adminToken}` }
+      })
+      if (response.data.success) {
+        toast.success("Stock details updated successfully!")
+        setEditingId(null)
+        fetchFoods()
+      } else {
+        toast.error(response.data.message || "Failed to update stock.")
+      }
+    } catch (err) {
+      console.error(err)
+      toast.error("Error updating stock details.")
+    }
+  }
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this material from inventory?")) {
+      return
+    }
+    try {
+      const response = await axios.post(`${url}/api/food/remove`, { id }, {
+        headers: { token: adminToken, Authorization: `Bearer ${adminToken}` }
+      })
+      if (response.data.success) {
+        toast.success("Material deleted from inventory successfully!")
+        fetchFoods()
+      } else {
+        toast.error(response.data.message || "Failed to delete material.")
+      }
+    } catch (err) {
+      console.error(err)
+      toast.error("Error deleting material.")
+    }
   }
 
   const filteredFoods = foods.filter(item => 
@@ -200,9 +141,7 @@ const StockList = ({ url, adminToken }) => {
 
   return (
     <div className="p-6 md:p-8 max-w-6xl mx-auto animate-fadeIn text-zinc-900 dark:text-zinc-100">
-      <button onClick={() => navigate('/stock-control')} className="flex items-center gap-2 text-sm font-semibold text-zinc-500 hover:text-orange-600 mb-6 transition-colors">
-        <FiArrowLeft className="w-4 h-4" /> Back to Stock Control
-      </button>
+
 
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
@@ -237,11 +176,12 @@ const StockList = ({ url, adminToken }) => {
                   <th className="pb-3">Price</th>
                   <th className="pb-3">Qty Level</th>
                   <th className="pb-3">Status</th>
+                  <th className="pb-3 pr-2 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-50 dark:divide-zinc-850">
                 {filteredFoods.map(item => {
-                  const stock = getStock(item.name)
+                  const stock = item.quantity || 0
                   return (
                     <tr key={item._id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/20">
                       <td className="py-3 pl-2">
@@ -249,18 +189,93 @@ const StockList = ({ url, adminToken }) => {
                       </td>
                       <td className="py-3 font-bold text-zinc-855 dark:text-zinc-200">{item.name}</td>
                       <td className="py-3 text-zinc-500">{item.category}</td>
-                      <td className="py-3 font-semibold text-zinc-700 dark:text-zinc-350">LKR {item.price}</td>
-                      <td className="py-3 font-bold text-zinc-800 dark:text-zinc-200">{stock} units</td>
+                      
+                      {/* Price Cell */}
+                      <td className="py-3 font-semibold text-zinc-700 dark:text-zinc-350">
+                        {editingId === item._id ? (
+                          <div className="flex items-center gap-1 animate-fadeIn">
+                            <span className="text-xs text-zinc-400">LKR</span>
+                            <input
+                              type="number"
+                              value={editPrice}
+                              onChange={e => setEditPrice(Math.max(0, Number(e.target.value)))}
+                              className="w-20 px-2 py-1 text-xs rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 focus:border-orange-500 focus:outline-none font-bold"
+                            />
+                          </div>
+                        ) : (
+                          `LKR ${item.price}`
+                        )}
+                      </td>
+
+                      {/* Quantity Cell */}
+                      <td className="py-3">
+                        {editingId === item._id ? (
+                          <div className="flex items-center gap-1 animate-fadeIn">
+                            <input
+                              type="number"
+                              value={editQuantity}
+                              onChange={e => setEditQuantity(Math.max(0, Number(e.target.value)))}
+                              className="w-16 px-2 py-1 text-xs rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 focus:border-orange-500 focus:outline-none font-bold"
+                            />
+                            <span className="text-xs text-zinc-400">units</span>
+                          </div>
+                        ) : (
+                          `${stock} units`
+                        )}
+                      </td>
+
+                      {/* Status Cell */}
                       <td className="py-3">
                         <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-extrabold uppercase tracking-wider ${
-                          stock <= 3 
+                          stock === 0 
                             ? 'bg-red-100 text-red-650 dark:bg-red-950/20 dark:text-red-400' 
-                            : stock <= 5 
+                            : stock <= 10 
                               ? 'bg-orange-100 text-orange-650 dark:bg-orange-950/20 dark:text-orange-400' 
-                              : 'bg-emerald-100 text-emerald-650 dark:bg-emerald-950/20 dark:text-emerald-455'
+                              : 'bg-emerald-100 text-emerald-650 dark:bg-emerald-950/20 dark:text-[#10b981]'
                         }`}>
-                          {stock <= 3 ? 'Critical' : stock <= 5 ? 'Low Stock' : 'In Stock'}
+                          {stock === 0 ? 'Out of Stock' : stock <= 10 ? 'Low Stock' : 'In Stock'}
                         </span>
+                      </td>
+
+                      {/* Actions Cell */}
+                      <td className="py-3 pr-2 text-right">
+                        {editingId === item._id ? (
+                          <div className="flex items-center justify-end gap-1.5 animate-fadeIn">
+                            <button
+                              onClick={() => handleSave(item._id)}
+                              className="px-2.5 py-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-[10px] font-extrabold uppercase tracking-wider shadow-sm transition active:scale-95 cursor-pointer"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => setEditingId(null)}
+                              className="px-2.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 rounded-xl text-[10px] font-extrabold uppercase tracking-wider transition active:scale-95 cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => {
+                                setEditingId(item._id)
+                                setEditPrice(item.price)
+                                setEditQuantity(stock)
+                              }}
+                              className="p-1.5 text-zinc-450 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/20 rounded-xl transition cursor-pointer"
+                              title="Update Stock/Price"
+                            >
+                              <FiEdit2 size={14} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(item._id)}
+                              className="p-1.5 text-zinc-450 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl transition cursor-pointer"
+                              title="Delete Material"
+                            >
+                              <FiTrash2 size={14} />
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   )
@@ -288,9 +303,7 @@ const KitchenTransferList = () => {
 
   return (
     <div className="p-6 md:p-8 max-w-6xl mx-auto animate-fadeIn text-zinc-900 dark:text-zinc-100">
-      <button onClick={() => navigate('/stock-control')} className="flex items-center gap-2 text-sm font-semibold text-zinc-500 hover:text-orange-600 mb-6 transition-colors">
-        <FiArrowLeft className="w-4 h-4" /> Back to Stock Control
-      </button>
+
 
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
         <div className="mb-6">
@@ -333,17 +346,87 @@ const KitchenTransferList = () => {
   )
 }
 
-// 5. Main Component Router
+// 5. Supply History Component
+const SupplyHistory = ({ url, adminToken }) => {
+  const navigate = useNavigate()
+  const [supplies, setSupplies] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchSupplies = async () => {
+      try {
+        const response = await axios.get(`${url}/api/food/supplies`, {
+          headers: { token: adminToken, Authorization: `Bearer ${adminToken}` }
+        })
+        if (response.data.success) {
+          setSupplies(response.data.data)
+        }
+      } catch (error) {
+        toast.error("Failed to load supply history.")
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchSupplies()
+  }, [url, adminToken])
+
+  return (
+    <div className="p-6 md:p-8 max-w-6xl mx-auto animate-fadeIn text-zinc-900 dark:text-zinc-100">
+
+
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
+        <div className="mb-6">
+          <h2 className="text-2xl font-black tracking-tight">Incoming Supply Logs</h2>
+          <p className="text-xs text-zinc-550 dark:text-zinc-400 mt-0.5">Historical records of stock supplies received from supplier networks.</p>
+        </div>
+
+        {loading ? (
+          <p className="text-sm text-zinc-500">Loading supply records...</p>
+        ) : supplies.length === 0 ? (
+          <p className="text-sm text-zinc-500 py-6 text-center">No supply records found.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm border-collapse">
+              <thead>
+                <tr className="border-b border-zinc-150 dark:border-zinc-800 text-zinc-450 uppercase text-[10px] font-extrabold tracking-wider">
+                  <th className="pb-3 pl-2">Date / Time</th>
+                  <th className="pb-3">Material Name</th>
+                  <th className="pb-3">Supplier Name</th>
+                  <th className="pb-3">Quantity Supplied</th>
+                  <th className="pb-3 pr-2 text-right">Cost Price</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-50 dark:divide-zinc-850">
+                {supplies.map(log => (
+                  <tr key={log._id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/20">
+                    <td className="py-4 pl-2 text-zinc-500 text-xs">
+                      {new Date(log.date).toLocaleString()}
+                    </td>
+                    <td className="py-4 font-bold text-zinc-850 dark:text-zinc-200">{log.materialName}</td>
+                    <td className="py-4 font-semibold text-zinc-700 dark:text-zinc-350">{log.supplierName}</td>
+                    <td className="py-4 font-bold text-orange-600">{log.quantity} units</td>
+                    <td className="py-4 pr-2 text-right font-semibold text-zinc-700 dark:text-zinc-300">LKR {log.price}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// 6. Main Component Router
 const StockControl = ({ url, adminToken }) => {
   return (
     <Routes>
       <Route path="/" element={<StockControlGrid />} />
-      <Route path="/add-supplier" element={<SupplierManagement />} />
-      <Route path="/add-stock" element={<AddStock url={url} adminToken={adminToken} />} />
+      <Route path="/add-supplier" element={<SupplierManagement url={url} adminToken={adminToken} />} />
       <Route path="/stock-list" element={<StockList url={url} adminToken={adminToken} />} />
-      <Route path="/add-new-item" element={<Add url={url} adminToken={adminToken} />} />
       <Route path="/kitchen-transfer-list" element={<KitchenTransferList />} />
-      <Route path="/add-item" element={<Add url={url} adminToken={adminToken} />} />
+      <Route path="/add-material" element={<AddMaterial url={url} adminToken={adminToken} />} />
+      <Route path="/supply-history" element={<SupplyHistory url={url} adminToken={adminToken} />} />
     </Routes>
   )
 }
