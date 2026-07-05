@@ -7,6 +7,7 @@ const orderSchema = new mongoose.Schema({
   address: { type: Object, required: true },
   status: { type: String, default: "Order Placed" },
   kitchenStaff: { type: String, default: "" },
+  deliveryStaff: { type: String, default: "" },
   date: { type: Date, default: Date.now },
   payment: { type: Boolean, default: false },
 });

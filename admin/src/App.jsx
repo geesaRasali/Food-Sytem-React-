@@ -168,7 +168,7 @@ const App = () => {
             <Route path="/stock-control/*" element={canViewStockControl ? <StockControl url={url} adminToken={adminToken} /> : <Navigate to={defaultRoute} replace />} />
             <Route path="/supplier-management" element={canViewSupplierManagement ? <SupplierManagement url={url} adminToken={adminToken} /> : <Navigate to={defaultRoute} replace />} />
             <Route path="/kitchen-monitoring" element={canViewKitchenMonitoring ? <KitchenMonitoring url={url} adminToken={adminToken} adminUser={adminUser} /> : <Navigate to={defaultRoute} replace />} />
-            <Route path="/delivery-monitoring" element={canViewDeliveryMonitoring ? <DeliveryMonitoring /> : <Navigate to={defaultRoute} replace />} />
+            <Route path="/delivery-monitoring" element={canViewDeliveryMonitoring ? <DeliveryMonitoring url={url} adminToken={adminToken} adminUser={adminUser} /> : <Navigate to={defaultRoute} replace />} />
             <Route path="/orders" element={canManageOrders ? <Orders url={url} adminToken={adminToken} adminUser={adminUser} /> : <Navigate to={defaultRoute} replace />} />
             <Route path="/admin/messages" element={canViewMessages ? <Messages url={url} adminToken={adminToken} /> : <Navigate to={defaultRoute} replace />} />
             <Route path="/staff-users" element={canManageUsers ? <StaffUsers url={url} adminToken={adminToken} /> : <Navigate to={defaultRoute} replace />} />

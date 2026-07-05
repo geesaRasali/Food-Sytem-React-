@@ -1,5 +1,6 @@
 import foodModel from "../models/foodModel.js";
 import supplyModel from "../models/supplyModel.js";
+import transferModel from "../models/transferModel.js";
 import fs from "fs";
 import path from "path";
 
@@ -105,13 +106,8 @@ const addFood = async (req, res) => {
   console.log("Request body:", req.body); // Debug log
   console.log("Request file:", req.file); // Debug log
 
-  // Check if file is uploaded or default image is provided
-  let image_filename = "";
-  if (req.file) {
-    image_filename = `${req.file.filename}`;
-  } else if (req.body.image) {
-    image_filename = req.body.image;
-  } else {
+  // Check if file is uploaded
+  if (!req.file) {
     return res.json({ success: false, message: "Image is required" });
   }
 
@@ -124,6 +120,8 @@ const addFood = async (req, res) => {
   ) {
     return res.json({ success: false, message: "All fields are required" });
   }
+
+  let image_filename = `${req.file.filename}`;
 
   const food = new foodModel({
     name: req.body.name,
@@ -314,4 +312,70 @@ const listSupplies = async (req, res) => {
   }
 };
 
-export { addFood, updateFood, listFood, removeFood, getFoodCategories, getFoodByCategory, addStockQuantity, listSupplies };
+// Add kitchen stock transfer
+const addTransfer = async (req, res) => {
+  const { materialId, quantity, recipientSection } = req.body;
+  if (!materialId || !quantity || !recipientSection) {
+    return res.json({ success: false, message: "Material ID, quantity, and recipient section are required" });
+  }
+
+  try {
+    const food = await foodModel.findById(materialId);
+    if (!food) {
+      return res.json({ success: false, message: "Material not found" });
+    }
+
+    const qtyToMove = Number(quantity);
+    if (isNaN(qtyToMove) || qtyToMove <= 0) {
+      return res.json({ success: false, message: "Valid quantity is required" });
+    }
+
+    const currentStock = Number(food.quantity) || 0;
+    if (currentStock < qtyToMove) {
+      return res.json({ success: false, message: "Insufficient stock quantity" });
+    }
+
+    // Decrement stock in food model
+    food.quantity = currentStock - qtyToMove;
+    await food.save();
+
+    // Create transfer log
+    const transfer = new transferModel({
+      materialId: food._id,
+      materialName: food.name,
+      quantity: qtyToMove,
+      unit: food.unit || "units",
+      recipientSection
+    });
+    await transfer.save();
+
+    res.json({ success: true, message: "Stock transferred successfully", data: transfer });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: "Error performing stock transfer", error: error.message });
+  }
+};
+
+// List all stock transfers
+const listTransfers = async (req, res) => {
+  try {
+    const transfers = await transferModel.find({}).sort({ date: -1 });
+    res.json({ success: true, data: transfers });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: "Error fetching transfers history" });
+  }
+};
+
+export { 
+  addFood, 
+  updateFood, 
+  listFood, 
+  removeFood, 
+  getFoodCategories, 
+  getFoodByCategory, 
+  addStockQuantity, 
+  listSupplies,
+  addTransfer,
+  listTransfers
+};

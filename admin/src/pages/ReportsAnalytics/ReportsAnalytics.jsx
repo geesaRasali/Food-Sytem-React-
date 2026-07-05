@@ -31,13 +31,19 @@ const formatMoney = (value) =>
     maximumFractionDigits: 0,
   }).format(value || 0);
 
-// Helper for stock calculation to align with Stock Control
-const getStock = (name) => {
-  const charSum = name.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
-  return charSum % 14; 
-};
 
 // Map database categories to reports categories
+const materialCategories = [
+  'bakery and grains',
+  'Beverages',
+  'Dairy and egg',
+  'Meat & Seafood',
+  'Vegetables',
+  'Spices',
+  'Oils & Dressings',
+  'Baking & Sweeteners'
+];
+
 const mapCategory = (dbCategory = '') => {
   const cat = dbCategory.toLowerCase().trim();
   if (cat.includes('pizza')) return 'Pizza';
@@ -120,7 +126,7 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
         if (ordersRes?.data?.success) setOrders(ordersRes.data.data || []);
         if (foodsRes?.data?.success) setFoods(foodsRes.data.data || []);
         if (customersRes?.data?.success) setCustomersCount(customersRes.data.count || 0);
-        if (staffRes?.data?.success) setStaff(staffRes.data.data || []);
+        if (staffRes?.data?.success) setStaff(staffRes.data.users || []);
         if (messagesRes?.data?.success) setMessages(messagesRes.data.data || []);
       } catch (err) {
         console.error("Error fetching report data:", err);
@@ -133,61 +139,12 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
     fetchData();
   }, [url, adminToken]);
 
-  // Fallbacks if data is clean or backend returns empty
-  const activeOrders = useMemo(() => {
-    if (orders.length > 0) return orders;
-    return [
-      { _id: 'ord-1024', amount: 8000, status: 'Delivered', date: new Date(Date.now() - 3600000 * 2).toISOString(), payment: true, items: [{ name: 'Spicy Chicken Pizza (Large)', quantity: 2, price: 3000 }, { name: 'Jar Ice Cream', quantity: 1, price: 2000 }] },
-      { _id: 'ord-1025', amount: 24500, status: 'Food Processing', date: new Date(Date.now() - 3600000 * 5).toISOString(), payment: true, items: [{ name: 'Sliced Cake', quantity: 7, price: 3500 }] },
-      { _id: 'ord-1026', amount: 1600, status: 'Out for delivery', date: new Date(Date.now() - 3600000 * 8).toISOString(), payment: false, items: [{ name: 'Peri Peri Rolls', quantity: 1, price: 1600 }] },
-      { _id: 'ord-1027', amount: 1800, status: 'Food Processing', date: new Date(Date.now() - 3600000 * 12).toISOString(), payment: true, items: [{ name: 'Chicken Salad', quantity: 1, price: 1800 }] },
-      { _id: 'ord-1028', amount: 8800, status: 'Delivered', date: new Date(Date.now() - 3600000 * 26).toISOString(), payment: true, items: [{ name: 'Clover Salad', quantity: 4, price: 2200 }] },
-      { _id: 'ord-1029', amount: 4500, status: 'Cancelled', date: new Date(Date.now() - 3600000 * 30).toISOString(), payment: false, items: [{ name: 'Chicken Salad', quantity: 2, price: 1850 }] },
-      { _id: 'ord-1030', amount: 12000, status: 'Delivered', date: new Date(Date.now() - 86400000 * 3).toISOString(), payment: true, items: [{ name: 'Beef Burger Combo', quantity: 3, price: 4000 }] },
-      { _id: 'ord-1031', amount: 9500, status: 'Delivered', date: new Date(Date.now() - 86400000 * 5).toISOString(), payment: true, items: [{ name: 'Special Mix Fried Rice', quantity: 5, price: 1900 }] },
-      { _id: 'ord-1032', amount: 3500, status: 'Delivered', date: new Date(Date.now() - 86400000 * 12).toISOString(), payment: false, items: [{ name: 'Clover Salad', quantity: 1, price: 1900 }, { name: 'Veg Rolls', quantity: 1, price: 1600 }] }
-    ];
-  }, [orders]);
-
-  const activeFoods = useMemo(() => {
-    if (foods.length > 0) return foods;
-    return [
-      { _id: 'food-01', name: 'Clover Salad', price: 1900, category: 'Salad', image: 'salad.png' },
-      { _id: 'food-02', name: 'Chicken Salad', price: 1400, category: 'Salad', image: 'salad.png' },
-      { _id: 'food-03', name: 'Lasagna Rolls', price: 1400, category: 'Rolls', image: 'rolls.png' },
-      { _id: 'food-04', name: 'Peri Peri Rolls', price: 1200, category: 'Rolls', image: 'rolls.png' },
-      { _id: 'food-05', name: 'Chicken Rolls', price: 2000, category: 'Rolls', image: 'rolls.png' },
-      { _id: 'food-06', name: 'Veg Rolls', price: 1500, category: 'Rolls', image: 'rolls.png' },
-      { _id: 'food-07', name: 'Spicy Chicken Pizza', price: 3000, category: 'Pizza', image: 'pizza.png' },
-      { _id: 'food-08', name: 'Beef Burger Combo', price: 4000, category: 'Burgers', image: 'burger.png' },
-      { _id: 'food-09', name: 'Special Mix Fried Rice', price: 1900, category: 'Rice', image: 'rice.png' },
-      { _id: 'food-10', name: 'Soft Drinks Bottle', price: 450, category: 'Drinks', image: 'drinks.png' },
-      { _id: 'food-11', name: 'Jar Ice Cream', price: 2000, category: 'Desserts', image: 'desserts.png' }
-    ];
-  }, [foods]);
-
-  const activeCustomersCount = customersCount > 0 ? customersCount : 389;
-
-  const activeStaff = useMemo(() => {
-    if (staff.length > 0) return staff;
-    return [
-      { _id: 'st-01', name: 'Admin User', role: 'admin', email: 'admin@ufms.com' },
-      { _id: 'st-02', name: 'Nimal Jayasinghe', role: 'delivery staff', email: 'nimal@ufms.com' },
-      { _id: 'st-03', name: 'Kamal Bandara', role: 'kitchen staff', email: 'kamal@ufms.com' },
-      { _id: 'st-04', name: 'Sunil Perera', role: 'storekeeper', email: 'sunil@ufms.com' },
-      { _id: 'st-05', name: 'Roshan Silva', role: 'delivery staff', email: 'roshan@ufms.com' },
-      { _id: 'st-06', name: 'Amara De Silva', role: 'kitchen staff', email: 'amara@ufms.com' }
-    ];
-  }, [staff]);
-
-  const activeMessages = useMemo(() => {
-    if (messages.length > 0) return messages;
-    return [
-      { _id: 'msg-01', name: 'Amila Perera', message: 'Outstanding service! The food delivery was extremely prompt and hot.', rating: 5, date: new Date().toISOString() },
-      { _id: 'msg-02', name: 'Dinithi Silva', message: 'The pizza was delicious, but preparation took slightly longer than estimated.', rating: 4, date: new Date(Date.now() - 86400000).toISOString() },
-      { _id: 'msg-03', name: 'Roshan De Alwis', message: 'Very user-friendly system. Ordering food is a breeze now!', rating: 5, date: new Date(Date.now() - 86400000 * 2).toISOString() }
-    ];
-  }, [messages]);
+  // Use actual database values directly without simulated fallbacks
+  const activeOrders = useMemo(() => orders, [orders]);
+  const activeFoods = useMemo(() => foods, [foods]);
+  const activeCustomersCount = customersCount;
+  const activeStaff = useMemo(() => staff, [staff]);
+  const activeMessages = useMemo(() => messages, [messages]);
 
   // Apply Date Filter to Orders
   const filteredOrders = useMemo(() => {
@@ -246,31 +203,25 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
     // 12 Months structure
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     
-    // Baselines representing growth cycle
-    const baseRevenue = [120000, 145000, 130000, 168000, 185000, 210000, 240000, 220000, 260000, 280000, 310000, 350000];
-    const baseOrders = [40, 52, 48, 62, 70, 85, 95, 80, 105, 110, 120, 140];
-
-    const currentYear = new Date().getFullYear();
-
-    // Map base data to array
-    const data = months.map((month, idx) => ({
+    // Initialize actual totals for all months to 0
+    const data = months.map((month) => ({
       month,
-      revenue: baseRevenue[idx],
-      orders: baseOrders[idx],
-      profit: Math.round(baseRevenue[idx] * 0.6)
+      revenue: 0,
+      orders: 0,
+      profit: 0
     }));
 
-    // Add actual filtered order revenue/count to the current month dynamically
-    const currentMonthIdx = new Date().getMonth();
-    
-    // Add real database totals to current month
-    const realRevenue = filteredOrders.filter(o => !o.status?.toLowerCase().includes('cancel')).reduce((sum, o) => sum + Number(o.amount || 0), 0);
-    const realOrders = filteredOrders.length;
-
-    // Scale current month to represent local database activity combined with baseline
-    data[currentMonthIdx].revenue += realRevenue;
-    data[currentMonthIdx].orders += realOrders;
-    data[currentMonthIdx].profit = Math.round(data[currentMonthIdx].revenue * 0.6);
+    // Populate with real database orders
+    filteredOrders.forEach(o => {
+      if (o.status?.toLowerCase().includes('cancel')) return;
+      const orderDate = new Date(o.date);
+      const monthIdx = orderDate.getMonth(); // 0 to 11
+      if (monthIdx >= 0 && monthIdx < 12) {
+        data[monthIdx].revenue += Number(o.amount || 0);
+        data[monthIdx].orders += 1;
+        data[monthIdx].profit = Math.round(data[monthIdx].revenue * 0.6); // 60% estimated profit margin
+      }
+    });
 
     return data;
   }, [filteredOrders]);
@@ -303,14 +254,13 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
       }
     });
 
-    // Provide default fallback counts if no quantities ordered
     if (totalQuantities === 0) {
       return [
-        { name: 'Pizza', value: 35, color: '#f97316' },     // Orange
-        { name: 'Burgers', value: 25, color: '#8b5cf6' },   // Violet
-        { name: 'Rice', value: 20, color: '#06b6d4' },      // Cyan
-        { name: 'Drinks', value: 12, color: '#10b981' },    // Emerald
-        { name: 'Desserts', value: 8, color: '#ec4899' }    // Pink
+        { name: 'Pizza', value: 0, qty: 0, color: '#f97316' },
+        { name: 'Burgers', value: 0, qty: 0, color: '#8b5cf6' },
+        { name: 'Rice', value: 0, qty: 0, color: '#06b6d4' },
+        { name: 'Drinks', value: 0, qty: 0, color: '#10b981' },
+        { name: 'Desserts', value: 0, qty: 0, color: '#ec4899' }
       ];
     }
 
@@ -339,51 +289,48 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
     const total = onlineCount + offlineCount;
     if (total === 0) {
       return [
-        { name: 'Online', value: 55, color: '#3b82f6' }, // Blue
-        { name: 'Card', value: 30, color: '#f59e0b' },   // Amber
-        { name: 'Cash', value: 15, color: '#6b7280' }    // Gray
+        { name: 'Online (Stripe)', value: 0, color: '#3b82f6' },
+        { name: 'Cash on Delivery (COD)', value: 0, color: '#10b981' }
       ];
     }
 
     const onlinePct = Math.round((onlineCount / total) * 100);
     const offlinePct = 100 - onlinePct;
 
-    // Simulate 3-way split representing Cash/Card/Online
     return [
-      { name: 'Online', value: Math.max(10, Math.round(onlinePct * 0.85)), color: '#3b82f6' },
-      { name: 'Card', value: Math.max(10, Math.round(offlinePct * 0.65)), color: '#f59e0b' },
-      { name: 'Cash', value: Math.max(5, 100 - Math.max(10, Math.round(onlinePct * 0.85)) - Math.max(10, Math.round(offlinePct * 0.65))), color: '#10b981' }
+      { name: 'Online (Stripe)', value: onlinePct, color: '#3b82f6' },
+      { name: 'Cash on Delivery (COD)', value: offlinePct, color: '#10b981' }
     ];
   }, [filteredOrders]);
 
   // ---------------- Kitchen, Delivery, Inventory, Staff widget metrics ----------------
   const kitchenPerformance = useMemo(() => {
-    // Prep list sizes
     const pendingKitchenOrders = filteredOrders.filter(o => o.status === 'Food Processing' || o.status === 'Preparing').length;
-    const preparedCount = filteredOrders.filter(o => o.status === 'Ready' || o.status === 'Delivered').length + 18; // base
+    const preparedCount = filteredOrders.filter(o => o.status === 'Ready' || o.status === 'Delivered').length;
     return {
       preparedCount,
       pendingKitchenOrders,
-      avgPrepTime: '12.5 mins'
+      avgPrepTime: preparedCount > 0 ? '12.5 mins' : '0 mins'
     };
   }, [filteredOrders]);
 
   const deliveryPerformance = useMemo(() => {
-    const deliveredToday = filteredOrders.filter(o => o.status === 'Delivered').length + 6;
+    const deliveredToday = filteredOrders.filter(o => o.status === 'Delivered').length;
     return {
       deliveredToday,
-      avgDeliveryTime: '24 mins',
-      lateDeliveries: 1
+      avgDeliveryTime: deliveredToday > 0 ? '24 mins' : '0 mins',
+      lateDeliveries: 0
     };
   }, [filteredOrders]);
 
   const inventorySummary = useMemo(() => {
-    const totalVal = activeFoods.reduce((sum, item) => sum + (Number(item.price || 0) * getStock(item.name)), 0);
-    const lowStockCount = activeFoods.filter(item => getStock(item.name) <= 5).length;
+    const rawMaterials = activeFoods.filter(item => materialCategories.includes(item.category));
+    const totalVal = rawMaterials.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 0)), 0);
+    const lowStockCount = rawMaterials.filter(item => Number(item.quantity || 0) <= 5).length;
     return {
       totalValue: totalVal,
       lowStockItems: lowStockCount,
-      restockedToday: 2
+      restockedToday: 0
     };
   }, [activeFoods]);
 
@@ -426,14 +373,7 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
     list.sort((a, b) => b.orders - a.orders);
 
     if (list.length === 0) {
-      // Return high-fidelity fallback best sellers
-      return [
-        { name: 'Spicy Chicken Pizza', orders: 42, revenue: 126000, popularity: 95 },
-        { name: 'Beef Burger Combo', orders: 38, revenue: 152000, popularity: 90 },
-        { name: 'Special Mix Fried Rice', orders: 30, revenue: 57000, popularity: 75 },
-        { name: 'Clover Salad', orders: 25, revenue: 47500, popularity: 60 },
-        { name: 'Jar Ice Cream', orders: 18, revenue: 36000, popularity: 45 }
-      ];
+      return [];
     }
 
     const maxOrders = Math.max(...list.map(l => l.orders), 1);
@@ -445,9 +385,10 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
 
   // ---------------- Low Stock Items ----------------
   const lowStockReport = useMemo(() => {
-    return activeFoods
+    const rawMaterials = activeFoods.filter(item => materialCategories.includes(item.category));
+    return rawMaterials
       .map(item => {
-        const currentStock = getStock(item.name);
+        const currentStock = Number(item.quantity || 0);
         return {
           name: item.name,
           currentStock,
@@ -462,13 +403,19 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
   // ---------------- Customer Analytics Metrics ----------------
   const customerAnalytics = useMemo(() => {
     const feedbackCount = activeMessages.length;
-    const avgRating = activeMessages.length > 0 
-      ? (activeMessages.reduce((sum, m) => sum + m.rating, 0) / activeMessages.length).toFixed(1)
+    
+    // Filter messages that actually have valid numeric ratings to avoid NaN
+    const ratedMessages = activeMessages.filter(
+      (m) => typeof m.rating === 'number' && !isNaN(m.rating)
+    );
+    
+    const avgRating = ratedMessages.length > 0 
+      ? (ratedMessages.reduce((sum, m) => sum + m.rating, 0) / ratedMessages.length).toFixed(1)
       : '4.8';
 
     return {
       totalCustomers: activeCustomersCount,
-      newCustomersThisMonth: 12,
+      newCustomersThisMonth: 0,
       averageRating: avgRating,
       totalFeedback: feedbackCount
     };
@@ -540,12 +487,12 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
     const days = 7;
     const table = [];
     const now = new Date();
+    const pad = (num) => String(num).padStart(2, '0');
 
     for (let i = 0; i < days; i++) {
       const d = new Date();
       d.setDate(now.getDate() - i);
-      const dateStr = d.toLocaleDateString('en-LK', { year: 'numeric', month: '2-digit', day: '2-digit' });
-      const dayKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      const dateStr = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
 
       // Filter orders on this day
       const dayOrders = activeOrders.filter(o => {
@@ -554,24 +501,16 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
       });
 
       const orderCount = dayOrders.length;
-      const revenue = dayOrders.filter(o => o.status !== 'Cancelled').reduce((sum, o) => sum + o.amount, 0);
-      
-      // Simulate historical fluctuations if database has no active orders for that day
-      const baseRev = orderCount > 0 ? revenue : Math.round(18000 + Math.random() * 25000);
-      const baseOrdersCount = orderCount > 0 ? orderCount : Math.round(3 + Math.random() * 6);
-      const expenses = Math.round(baseRev * 0.4);
-      const profit = baseRev - expenses;
-      const cancelled = dayOrders.filter(o => o.status === 'Cancelled').length;
-      const delivered = dayOrders.filter(o => o.status === 'Delivered').length;
+      const revenue = dayOrders.filter(o => !o.status?.toLowerCase().includes('cancel')).reduce((sum, o) => sum + Number(o.amount || 0), 0);
+      const cancelled = dayOrders.filter(o => o.status?.toLowerCase().includes('cancel')).length;
+      const delivered = dayOrders.filter(o => o.status?.toLowerCase() === 'delivered').length;
 
       table.push({
         date: dateStr,
-        orders: baseOrdersCount,
-        revenue: baseRev,
-        expenses,
-        profit,
+        orders: orderCount,
+        revenue,
         cancelled,
-        delivered: orderCount > 0 ? delivered : baseOrdersCount - cancelled
+        delivered
       });
     }
 
@@ -585,10 +524,10 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
 
   const handleExportCSV = () => {
     let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "Date,Orders,Revenue (LKR),Expenses (LKR),Profit (LKR),Cancelled,Delivered\r\n";
+    csvContent += "Date,Orders,Revenue (LKR),Cancelled,Delivered\r\n";
     
     ledgerReportTable.forEach(row => {
-      csvContent += `${row.date},${row.orders},${row.revenue},${row.expenses},${row.profit},${row.cancelled},${row.delivered}\r\n`;
+      csvContent += `${row.date},${row.orders},${row.revenue},${row.cancelled},${row.delivered}\r\n`;
     });
 
     const encodedUri = encodeURI(csvContent);
@@ -658,29 +597,7 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
             )}
           </div>
 
-          {/* Export Buttons */}
-          <div className="flex items-center gap-2 print:hidden">
-            <button 
-              onClick={handleExportCSV}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-orange-500 dark:hover:border-orange-500 rounded-xl font-bold text-sm shadow-sm transition-all cursor-pointer"
-            >
-              <FiFileText className="w-4 h-4 text-zinc-550" />
-              <span>Export CSV</span>
-            </button>
-            <button 
-              onClick={handleExportPDF}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-orange-500 dark:hover:border-orange-500 rounded-xl font-bold text-sm shadow-sm transition-all cursor-pointer"
-            >
-              <FiDownload className="w-4 h-4 text-zinc-550" />
-              <span>Export PDF</span>
-            </button>
-            <button 
-              onClick={handlePrint}
-              className="flex items-center gap-2 px-4 py-2.5 bg-zinc-950 text-white hover:bg-orange-600 dark:bg-zinc-800 dark:hover:bg-orange-600 rounded-xl font-bold text-sm shadow-md transition-all active:scale-[0.98] cursor-pointer"
-            >
-              <span>Print Report</span>
-            </button>
-          </div>
+
         </div>
       </div>
 
@@ -728,7 +645,7 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
         <div className="space-y-8 animate-pulse">
           {/* Cards skeleton */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[...Array(8)].map((_, i) => (
+            {[...Array(7)].map((_, i) => (
               <div key={i} className="h-28 bg-zinc-200 dark:bg-zinc-850 rounded-2xl" />
             ))}
           </div>
@@ -747,7 +664,6 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               { title: 'Total Revenue', value: formatMoney(summaryMetrics.revenue), icon: FiDollarSign, pct: '+14.2%', color: 'from-orange-500/10 to-orange-500/5 text-orange-500' },
-              { title: 'Total Profit', value: formatMoney(summaryMetrics.profit), icon: FiPercent, pct: '+12.8%', color: 'from-violet-500/10 to-violet-500/5 text-violet-500' },
               { title: 'Total Orders', value: summaryMetrics.ordersCount, icon: FiShoppingBag, pct: '+8.3%', color: 'from-blue-500/10 to-blue-500/5 text-blue-500' },
               { title: 'Active Customers', value: summaryMetrics.activeCustomers, icon: FiUsers, pct: '+15.2%', color: 'from-emerald-500/10 to-emerald-500/5 text-emerald-500' },
               { title: 'Delivered Orders', value: summaryMetrics.deliveredCount, icon: FiCheckCircle, pct: '+9.4%', color: 'from-cyan-500/10 to-cyan-500/5 text-cyan-500' },
@@ -766,13 +682,13 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
                   <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl ${card.color} opacity-20 rounded-bl-full group-hover:scale-110 transition-transform`} />
                   
                   <div className="flex items-center justify-between mb-4">
-                    <span className="text-xs font-extrabold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">{card.title}</span>
+                    <span className="text-sm font-extrabold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">{card.title}</span>
                     <div className={`p-2.5 rounded-xl bg-gradient-to-tr ${card.color} font-bold`}>
                       <Icon className="w-5 h-5" />
                     </div>
                   </div>
-                  <h3 className="text-2xl font-black tracking-tight text-zinc-950 dark:text-white mb-2">{card.value}</h3>
-                  <p className="text-xs flex items-center gap-1.5">
+                  <h3 className="text-3xl font-black tracking-tight text-zinc-950 dark:text-white mb-2">{card.value}</h3>
+                  <p className="text-sm flex items-center gap-1.5">
                     <span className={`font-black ${card.isNeg ? 'text-red-550' : 'text-emerald-600'}`}>
                       {card.pct}
                     </span>
@@ -795,10 +711,6 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
                   <span className="w-3 h-3 rounded-full bg-orange-500" />
                   <span className="text-zinc-500 dark:text-zinc-400">Revenue (LKR)</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-violet-500" />
-                  <span className="text-zinc-500 dark:text-zinc-400">Profit (LKR)</span>
-                </div>
               </div>
             </div>
 
@@ -809,10 +721,6 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
                   <linearGradient id="revenue-gradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#f97316" stopOpacity="0.25" />
                     <stop offset="100%" stopColor="#f97316" stopOpacity="0.0" />
-                  </linearGradient>
-                  <linearGradient id="profit-gradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.25" />
-                    <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.0" />
                   </linearGradient>
                 </defs>
 
@@ -845,14 +753,6 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
                   });
                   areaPathD += `L 460 170 Z`;
 
-                  let profitAreaPathD = `M 40 170 `;
-                  monthlyTimelineData.forEach((d, idx) => {
-                    const x = idx * (420 / (pointsCount - 1)) + 40;
-                    const y = 170 - (d.profit / maxVal) * 140;
-                    profitAreaPathD += `L ${x} ${y} `;
-                  });
-                  profitAreaPathD += `L 460 170 Z`;
-
                   // Construct Stroke Path
                   let linePathD = `M `;
                   monthlyTimelineData.forEach((d, idx) => {
@@ -861,22 +761,13 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
                     linePathD += `${idx === 0 ? '' : 'L '}${x} ${y} `;
                   });
 
-                  let profitLinePathD = `M `;
-                  monthlyTimelineData.forEach((d, idx) => {
-                    const x = idx * (420 / (pointsCount - 1)) + 40;
-                    const y = 170 - (d.profit / maxVal) * 140;
-                    profitLinePathD += `${idx === 0 ? '' : 'L '}${x} ${y} `;
-                  });
-
                   return (
                     <>
                       {/* Gradient areas */}
                       <path d={areaPathD} fill="url(#revenue-gradient)" />
-                      <path d={profitAreaPathD} fill="url(#profit-gradient)" />
                       
                       {/* Line paths */}
                       <path d={linePathD} fill="none" stroke="#f97316" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d={profitLinePathD} fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </>
                   );
                 })()}
@@ -887,7 +778,6 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
                   const maxVal = Math.max(...monthlyTimelineData.map(d => d.revenue), 1);
                   const x = idx * (420 / (pointsCount - 1)) + 40;
                   const yRevenue = 170 - (d.revenue / maxVal) * 140;
-                  const yProfit = 170 - (d.profit / maxVal) * 140;
 
                   return (
                     <g key={idx} className="cursor-pointer">
@@ -910,17 +800,6 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
                         fill="#fff" 
                         stroke="#f97316" 
                         strokeWidth="2.5" 
-                        className="transition-all"
-                      />
-
-                      {/* Profit dot */}
-                      <circle 
-                        cx={x} 
-                        cy={yProfit} 
-                        r={hoveredLineIdx === idx ? 5 : 3} 
-                        fill="#fff" 
-                        stroke="#8b5cf6" 
-                        strokeWidth="2" 
                         className="transition-all"
                       />
                       
@@ -960,10 +839,6 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
                     <span className="flex items-center justify-between">
                       <span className="text-zinc-400 font-semibold">Revenue:</span>
                       <span className="font-black text-orange-400">{formatMoney(monthlyTimelineData[hoveredLineIdx].revenue)}</span>
-                    </span>
-                    <span className="flex items-center justify-between">
-                      <span className="text-zinc-400 font-semibold">Profit:</span>
-                      <span className="font-black text-violet-400">{formatMoney(monthlyTimelineData[hoveredLineIdx].profit)}</span>
                     </span>
                     <span className="flex items-center justify-between mt-0.5 border-t border-zinc-900 pt-1.5">
                       <span className="text-zinc-500 font-bold">Orders Placed:</span>
@@ -1105,8 +980,10 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
                         <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200">{slice.name}</span>
                       </div>
                       <div className="text-right">
-                        <span className="text-xs font-black text-zinc-950 dark:text-white">{slice.value}%</span>
-                        {slice.qty && <span className="text-[10px] text-zinc-450 block font-bold">{slice.qty} sold</span>}
+                        <span className="text-xs font-black text-zinc-955 dark:text-white">{slice.value}%</span>
+                        {typeof slice.qty === 'number' ? (
+                          <span className="text-[10px] text-zinc-450 block font-bold">{slice.qty} sold</span>
+                        ) : null}
                       </div>
                     </div>
                   ))}
@@ -1270,24 +1147,30 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-50 dark:divide-zinc-850">
-                    {bestSellingFoods.map((food, idx) => (
-                      <tr key={idx} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/10 transition-colors">
-                        <td className="py-3 pl-2 font-bold text-zinc-800 dark:text-zinc-200">{food.name}</td>
-                        <td className="py-3 text-center text-zinc-500 font-semibold">{food.orders} sold</td>
-                        <td className="py-3 font-bold text-zinc-900 dark:text-white">{formatMoney(food.revenue)}</td>
-                        <td className="py-3 pr-2">
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 bg-zinc-100 dark:bg-zinc-800 rounded-full h-1.5 min-w-16 overflow-hidden">
-                              <div 
-                                className="bg-orange-500 rounded-full h-full"
-                                style={{ width: `${food.popularity}%` }}
-                              />
-                            </div>
-                            <span className="font-extrabold text-[10px] text-zinc-550">{food.popularity}%</span>
-                          </div>
-                        </td>
+                    {bestSellingFoods.length === 0 ? (
+                      <tr>
+                        <td colSpan="4" className="text-center py-6 text-zinc-400 font-semibold">No sales data recorded yet.</td>
                       </tr>
-                    ))}
+                    ) : (
+                      bestSellingFoods.map((food, idx) => (
+                        <tr key={idx} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/10 transition-colors">
+                          <td className="py-3 pl-2 font-bold text-zinc-800 dark:text-zinc-200">{food.name}</td>
+                          <td className="py-3 text-center text-zinc-500 font-semibold">{food.orders} sold</td>
+                          <td className="py-3 font-bold text-zinc-900 dark:text-white">{formatMoney(food.revenue)}</td>
+                          <td className="py-3 pr-2">
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 bg-zinc-100 dark:bg-zinc-800 rounded-full h-1.5 min-w-16 overflow-hidden">
+                                <div 
+                                  className="bg-orange-500 rounded-full h-full"
+                                  style={{ width: `${food.popularity}%` }}
+                                />
+                              </div>
+                              <span className="font-extrabold text-[10px] text-zinc-550">{food.popularity}%</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -1470,45 +1353,6 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
 
           </div>
 
-          {/* ---------------- RECENT ACTIVITIES TIMELINE ---------------- */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
-            <div className="mb-6 flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-black tracking-tight text-zinc-950 dark:text-white">Recent Activities</h3>
-                <p className="text-xs text-zinc-550 dark:text-zinc-400 mt-0.5">Chronological system log from all operational modules</p>
-              </div>
-              <FiActivity className="w-5 h-5 text-orange-500 animate-pulse" />
-            </div>
-
-            <div className="relative pl-6 border-l-2 border-zinc-100 dark:border-zinc-800 ml-3 space-y-6">
-              {recentActivities.map((act, idx) => {
-                let badgeColor = 'bg-orange-500';
-                if (act.type === 'delivery') badgeColor = 'bg-blue-500';
-                if (act.type === 'feedback') badgeColor = 'bg-violet-500';
-                if (act.type === 'staff') badgeColor = 'bg-emerald-500';
-                if (act.type === 'stock') badgeColor = 'bg-amber-500';
-
-                return (
-                  <div key={act.id} className="relative group">
-                    {/* Timeline bullet */}
-                    <span className={`absolute -left-[31px] top-1.5 w-3.5 h-3.5 rounded-full ${badgeColor} border-2 border-white dark:border-zinc-900 group-hover:scale-115 transition-transform`} />
-                    
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-                      <div>
-                        <h4 className="font-extrabold text-xs text-zinc-900 dark:text-white group-hover:text-orange-500 transition-colors">{act.title}</h4>
-                        <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">{act.description}</p>
-                      </div>
-                      <span className="text-[10px] text-zinc-400 font-extrabold min-w-28 text-left sm:text-right">
-                        {new Date(act.time).toLocaleTimeString('en-LK', { hour: '2-digit', minute: '2-digit' })}{' '}
-                        ({new Date(act.time).toLocaleDateString('en-LK', { month: 'short', day: 'numeric' })})
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
           {/* ---------------- LEDGER REPORT TABLE ---------------- */}
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm overflow-hidden print:border-none print:shadow-none">
             <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -1532,8 +1376,6 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
                     <th className="pb-3.5 pl-3">Date</th>
                     <th className="pb-3.5 text-center">Orders</th>
                     <th className="pb-3.5 text-right">Revenue</th>
-                    <th className="pb-3.5 text-right">Expenses</th>
-                    <th className="pb-3.5 text-right">Profit</th>
                     <th className="pb-3.5 text-center">Cancelled</th>
                     <th className="pb-3.5 pr-3 text-center">Delivered</th>
                   </tr>
@@ -1544,8 +1386,6 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
                       <td className="py-3.5 pl-3 font-bold text-zinc-800 dark:text-zinc-200">{row.date}</td>
                       <td className="py-3.5 text-center font-bold text-zinc-650 dark:text-zinc-400">{row.orders} orders</td>
                       <td className="py-3.5 text-right font-bold text-zinc-900 dark:text-white">{formatMoney(row.revenue)}</td>
-                      <td className="py-3.5 text-right text-zinc-500 font-semibold">{formatMoney(row.expenses)}</td>
-                      <td className="py-3.5 text-right font-black text-emerald-600">{formatMoney(row.profit)}</td>
                       <td className="py-3.5 text-center">
                         <span className={`inline-flex px-2 py-0.5 rounded-full text-[9px] font-extrabold tracking-wide ${
                           row.cancelled > 0 ? 'bg-red-50 text-red-750 dark:bg-red-950/20 dark:text-red-400' : 'text-zinc-400'

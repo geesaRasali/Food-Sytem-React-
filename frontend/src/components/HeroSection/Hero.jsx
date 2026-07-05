@@ -62,7 +62,7 @@ const Hero = () => {
       <div className="relative z-30 w-full px-4 sm:px-6 md:px-14 lg:px-20 pt-4">
         <div className="max-w-7xl mx-auto bg-linear-to-r from-[#cf6b1d] via-[#7C4A1D] to-[#F97316] text-white text-center py-3 text-sm font-medium tracking-wide border border-orange-200 rounded-2xl shadow-[0_10px_24px_rgba(124,74,29,0.35)]">
           <span className="font-bold">
-            🍔 Free Delivery on Orders Above LKR 10000 – Limited Time Offer 🎉
+            🍔 Free Delivery on Orders Above LKR 15000 – Limited Time Offer 🎉
           </span>
         </div>
       </div>

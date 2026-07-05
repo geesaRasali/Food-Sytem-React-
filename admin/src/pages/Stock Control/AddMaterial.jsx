@@ -29,7 +29,8 @@ const AddMaterial = ({ url, adminToken }) => {
         category: materialCategories[0],
         supplier: '',
         quantity: '',
-        unit: 'kg'
+        unit: 'kg',
+        expiryDate: ''
     })
 
     console.log("stockMaterials keys:", Object.keys(stockMaterials));
@@ -76,6 +77,9 @@ const AddMaterial = ({ url, adminToken }) => {
         formData.append('supplier', data.supplier)
         formData.append('quantity', Number(data.quantity) || 0)
         formData.append('unit', data.unit)
+        if (data.expiryDate) {
+            formData.append('expiryDate', data.expiryDate)
+        }
         
         if (image) {
             formData.append('image', image)
@@ -97,7 +101,8 @@ const AddMaterial = ({ url, adminToken }) => {
                     category: materialCategories[0],
                     supplier: suppliersList[0]?.name || '',
                     quantity: '',
-                    unit: 'kg'
+                    unit: 'kg',
+                    expiryDate: ''
                 })
                 setImage(false)
                 setSelectedPredefined(null)
@@ -257,6 +262,16 @@ const AddMaterial = ({ url, adminToken }) => {
                                             className='w-full rounded-2xl border-none bg-zinc-50 dark:bg-zinc-800/50 px-5 py-4 text-zinc-900 dark:text-white outline-none transition placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-orange-400'
                                             placeholder='e.g. 50'
                                             required
+                                        />
+                                    </div>
+                                    <div className='space-y-2'>
+                                        <label className='ml-1 text-sm font-bold text-zinc-700 dark:text-zinc-300'>Expiry Date</label>
+                                        <input
+                                            name='expiryDate'
+                                            type='date'
+                                            onChange={onChangeHandler}
+                                            value={data.expiryDate}
+                                            className='w-full rounded-2xl border-none bg-zinc-50 dark:bg-zinc-800/50 px-5 py-4 text-zinc-900 dark:text-white outline-none transition focus:bg-white focus:ring-2 focus:ring-orange-400'
                                         />
                                     </div>
                                 </div>

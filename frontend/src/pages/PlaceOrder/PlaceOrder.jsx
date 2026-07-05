@@ -8,7 +8,7 @@ const PlaceOrder = () => {
   const {getTotalCartAmount,token,food_list,cartItems,url} = useContext(StoreContext)
    const navigate = useNavigate()
   const subtotal = getTotalCartAmount()
-  const FREE_DELIVERY_THRESHOLD = 10000
+  const FREE_DELIVERY_THRESHOLD = 15000
   const DELIVERY_FEE = 400
   const deliveryFee = subtotal === 0 ? 0 : subtotal > FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE
   const total = subtotal + deliveryFee

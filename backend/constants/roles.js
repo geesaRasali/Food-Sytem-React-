@@ -42,4 +42,4 @@ export const ORDER_VIEW_ROLES = [
 
 export const ORDER_STATUS_UPDATE_ROLES = ORDER_VIEW_ROLES;
 
-export const DELIVERY_ALLOWED_STATUSES = ["Out for delivery", "Delivered"];
+export const DELIVERY_ALLOWED_STATUSES = ["Received from Kitchen", "Out for delivery", "Delivered"];

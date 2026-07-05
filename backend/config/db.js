@@ -6,6 +6,18 @@ export const connectDB = async () => {
 	try {
 		await mongoose.connect(databaseUrl);
 		console.log("db connected");
+		
+		// Drop non-default indexes on transfers collection to clear any accidental unique constraints
+		try {
+			const transfersCollection = mongoose.connection.collection('transfers');
+			if (transfersCollection) {
+				await transfersCollection.dropIndexes();
+				console.log("transfers collection indexes cleared");
+			}
+		} catch (idxErr) {
+			// Index might not exist or collection is empty, which is fine
+			console.log("No indexes to clear or collection not initialized yet");
+		}
 	} catch (error) {
 		console.error(
 			`Unable to connect to MongoDB at ${databaseUrl}. Start MongoDB locally or update DATABASE_URL to a reachable database.`,

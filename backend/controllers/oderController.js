@@ -36,7 +36,7 @@ const placeOrder = async (req, res) => {
       (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
       0,
     );
-    const freeDeliveryThreshold = 10000;
+    const freeDeliveryThreshold = 15000;
     const deliveryFeeAmount = 400;
     const deliveryFee = subtotal === 0 ? 0 : subtotal > freeDeliveryThreshold ? 0 : deliveryFeeAmount;
 
@@ -159,7 +159,7 @@ const listOrders = async (req, res) => {
 // Update order status
 const updateStatus = async (req, res) => {
   try {
-    const { orderId, status, kitchenStaff } = req.body;
+    const { orderId, status, kitchenStaff, deliveryStaff } = req.body;
 
     if (!orderId) {
       return res.json({ success: false, message: "Order ID is required" });
@@ -175,9 +175,10 @@ const updateStatus = async (req, res) => {
     const updateObj = {};
     if (status) updateObj.status = status;
     if (kitchenStaff !== undefined) updateObj.kitchenStaff = kitchenStaff;
+    if (deliveryStaff !== undefined) updateObj.deliveryStaff = deliveryStaff;
 
     if (Object.keys(updateObj).length === 0) {
-      return res.json({ success: false, message: "Either status or kitchenStaff is required to update" });
+      return res.json({ success: false, message: "Either status, kitchenStaff, or deliveryStaff is required to update" });
     }
 
     await orderModel.findByIdAndUpdate(orderId, updateObj);

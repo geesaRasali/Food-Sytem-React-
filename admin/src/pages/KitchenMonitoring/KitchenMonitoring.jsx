@@ -202,7 +202,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
       const workflowState = getWorkflowState(order.status);
       
       // Calculate dynamic priority level based on order value complexity
-      const priority = order.amount > 10000 ? 'High' : order.amount > 4000 ? 'Medium' : 'Low';
+      const priority = order.amount > 15000 ? 'High' : order.amount > 4000 ? 'Medium' : 'Low';
       
       // Calculate estimated prep duration based on item quantity
       const itemCount = (order.items || []).reduce((sum, item) => sum + Number(item.quantity || 1), 0);
@@ -232,7 +232,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
   const completedOrders = useMemo(() => {
     return activeOrders.map(order => {
       const workflowState = getWorkflowState(order.status);
-      const priority = order.amount > 10000 ? 'High' : order.amount > 4000 ? 'Medium' : 'Low';
+      const priority = order.amount > 15000 ? 'High' : order.amount > 4000 ? 'Medium' : 'Low';
       const itemCount = (order.items || []).reduce((sum, item) => sum + Number(item.quantity || 1), 0);
       const estPrepTime = `${10 + itemCount * 2} mins`;
       return {
@@ -263,10 +263,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
     return effectiveStaffList.map(staff => {
       const activeCount = kitchenOrders.filter(o => o.kitchenStaff === staff.name && o.workflowState !== 'Ready for Pickup').length;
       
-      // Determine status:
-      // 1. If assigned status exists in local state, use it.
-      // 2. If activeCount > 0, they are preparing.
-      // 3. Else fallback to Available, or On Break for specific members (like Nimal Perera) to show diversity.
+      
       let status = staffStatuses[staff.name || staff.username];
       if (!status) {
         if (activeCount > 0) {
@@ -495,7 +492,22 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
 
   const stockAlerts = useMemo(() => {
     const lowStockThreshold = 5;
+    const materialCategories = [
+      'bakery and grains',
+      'Beverages',
+      'Dairy and egg',
+      'Meat & Seafood',
+      'Vegetables',
+      'Spices',
+      'Oils & Dressings',
+      'Baking & Sweeteners'
+    ].map(c => c.toLowerCase());
+
     const realLowStock = foods
+      .filter(item => {
+        const cat = item.category?.toLowerCase() || '';
+        return materialCategories.includes(cat);
+      })
       .map(item => {
         const stockCandidate = item?.stock ?? item?.quantity ?? item?.availableQty;
         let stock = null;
@@ -578,11 +590,11 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
             <FiCoffee className="w-8 h-8 animate-bounce" />
           </div>
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-zinc-955 dark:text-white">
+            <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
               {isKitchenStaffUser ? "Welcome, Kitchen Staff!" : "Kitchen Operations Portal"}
             </h1>
-            <p className="text-sm text-zinc-500 dark:text-zinc-450 mt-1 font-semibold">
-              Role: <span className="text-red-650 dark:text-red-500 font-bold capitalize">{adminUser?.role || 'Kitchen Staff'}</span>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 font-semibold">
+              Role: <span className="text-red-600 dark:text-red-500 font-bold capitalize">{adminUser?.role || 'Kitchen Staff'}</span>
             </p>
           </div>
         </div>
@@ -594,29 +606,29 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
           {/* TOP SUMMARY CARDS */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {(isKitchenStaffUser ? [
-              { title: "📋 Pending Orders", value: summaryMetrics.unassignedCount, icon: FiList, color: 'from-orange-500/10 to-orange-500/5 text-orange-500' },
-              { title: "🍳 Orders in Progress", value: summaryMetrics.myPreparingCount, icon: FiClock, color: 'from-amber-500/10 to-amber-500/5 text-amber-500' },
-              { title: "✅ Ready for Pickup", value: summaryMetrics.myReadyCount, icon: FiCheckCircle, color: 'from-emerald-500/10 to-emerald-500/5 text-emerald-500' },
-              { title: "⏱ Average Preparation Time", value: summaryMetrics.avgPrepTime, icon: FiClock, color: 'from-red-500/10 to-red-500/5 text-red-500' }
+              { title: "Pending Orders", value: summaryMetrics.unassignedCount, icon: FiList, color: 'bg-orange-500/10 text-orange-500 border-orange-500/20' },
+              { title: "Orders in Progress", value: summaryMetrics.myPreparingCount, icon: FiClock, color: 'bg-amber-500/10 text-amber-500 border-amber-500/20' },
+              { title: "Ready for Pickup", value: summaryMetrics.myReadyCount, icon: FiCheckCircle, color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' },
+              { title: "Average Prep Time", value: summaryMetrics.avgPrepTime, icon: FiClock, color: 'bg-red-500/10 text-red-500 border-red-500/20' }
             ] : [
-              { title: "📋 Pending Orders", value: summaryMetrics.todayOrdersCount, icon: FiList, color: 'from-orange-500/10 to-orange-500/5 text-orange-500' },
-              { title: "🍳 Orders in Progress", value: summaryMetrics.preparingCount, icon: FiClock, color: 'from-amber-500/10 to-amber-500/5 text-amber-500' },
-              { title: "✅ Ready for Pickup", value: summaryMetrics.readyCount, icon: FiCheckCircle, color: 'from-emerald-500/10 to-emerald-500/5 text-emerald-500' },
-              { title: "⏱ Average Preparation Time", value: summaryMetrics.avgPrepTime, icon: FiClock, color: 'from-red-500/10 to-red-500/5 text-red-500' }
+              { title: "Total Pending", value: summaryMetrics.todayOrdersCount, icon: FiList, color: 'bg-orange-500/10 text-orange-500 border-orange-500/20' },
+              { title: "Orders in Progress", value: summaryMetrics.preparingCount, icon: FiClock, color: 'bg-amber-500/10 text-amber-500 border-amber-500/20' },
+              { title: "Ready for Pickup", value: summaryMetrics.readyCount, icon: FiCheckCircle, color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' },
+              { title: "Average Prep Time", value: summaryMetrics.avgPrepTime, icon: FiClock, color: 'bg-red-500/10 text-red-500 border-red-500/20' }
             ]).map((card, idx) => {
               const Icon = card.icon;
               return (
                 <motion.div
                   key={idx}
                   whileHover={{ scale: 1.02, y: -2 }}
-                  className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 shadow-sm relative overflow-hidden group"
+                  className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-5 shadow-xs relative overflow-hidden group transition duration-350"
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-xs font-extrabold uppercase tracking-wider text-zinc-450 dark:text-zinc-500">{card.title}</span>
-                      <h3 className="text-2xl font-black tracking-tight text-zinc-950 dark:text-white mt-1.5">{card.value}</h3>
+                      <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">{card.title}</span>
+                      <h3 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white mt-1.5">{card.value}</h3>
                     </div>
-                    <div className={`p-3 bg-gradient-to-tr ${card.color} rounded-xl`}>
+                    <div className={`p-3 rounded-2xl border ${card.color}`}>
                       <Icon className="w-5 h-5" />
                     </div>
                   </div>
@@ -630,24 +642,24 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
             {/* Left Column: Performance & Popular Items */}
             <div className="space-y-8">
               {/* Today's Performance Card */}
-              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-xs">
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h3 className="text-lg font-black tracking-tight text-zinc-955 dark:text-white">Today's Performance</h3>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-405">Kitchen efficiency overview</p>
+                    <h3 className="text-lg font-black tracking-tight text-zinc-900 dark:text-white">Today's Performance</h3>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Kitchen efficiency overview</p>
                   </div>
-                  <div className="p-3 bg-orange-50 text-orange-600 dark:bg-orange-955/20 dark:text-orange-400 rounded-2xl">
+                  <div className="p-3 bg-orange-500/10 text-orange-500 rounded-2xl border border-orange-500/10">
                     <FiTrendingUp className="w-5 h-5" />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div className="p-4 bg-zinc-50 dark:bg-zinc-850 rounded-2xl border border-zinc-150/50 dark:border-zinc-800 text-center">
-                    <span className="text-[10px] font-bold text-zinc-450 dark:text-zinc-550 uppercase block mb-1">Completed Orders</span>
+                  <div className="p-4 bg-zinc-50 dark:bg-zinc-800/40 rounded-2xl border border-zinc-200/50 dark:border-zinc-800/60 text-center">
+                    <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase block mb-1">Completed Orders</span>
                     <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{completedOrdersTodayCount}</span>
                   </div>
-                  <div className="p-4 bg-zinc-50 dark:bg-zinc-850 rounded-2xl border border-zinc-150/50 dark:border-zinc-800 text-center">
-                    <span className="text-[10px] font-bold text-zinc-450 dark:text-zinc-550 uppercase block mb-1">Total Orders</span>
+                  <div className="p-4 bg-zinc-50 dark:bg-zinc-800/40 rounded-2xl border border-zinc-200/50 dark:border-zinc-800/60 text-center">
+                    <span className="text-xs font-bold text-zinc-400 dark:text-zinc-500 uppercase block mb-1">Total Orders</span>
                     <span className="text-2xl font-black text-zinc-900 dark:text-white">{totalOrdersTodayCount}</span>
                   </div>
                 </div>
@@ -659,7 +671,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
                   </div>
                   <div className="h-3 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                     <div 
-                      className="h-full rounded-full bg-emerald-500 transition-all duration-500" 
+                      className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-500" 
                       style={{ width: `${completionPercentage}%` }}
                     />
                   </div>
@@ -667,13 +679,13 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
               </div>
 
               {/* Popular Menu Items Card */}
-              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-xs">
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h3 className="text-lg font-black tracking-tight text-zinc-955 dark:text-white">Popular Menu Items</h3>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-405">Most ordered items today</p>
+                    <h3 className="text-lg font-black tracking-tight text-zinc-900 dark:text-white">Popular Menu Items</h3>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Most ordered items today</p>
                   </div>
-                  <div className="p-3 bg-amber-50 text-amber-600 dark:bg-amber-955/20 dark:text-amber-400 rounded-2xl">
+                  <div className="p-3 bg-amber-500/10 text-amber-500 rounded-2xl border border-amber-500/10">
                     <FiAward className="w-5 h-5" />
                   </div>
                 </div>
@@ -690,7 +702,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
                         <div className="flex justify-between items-center text-xs font-bold">
                           <div className="flex items-center gap-2">
                             <span className="text-lg shrink-0">{medals[idx]}</span>
-                            <span className="text-zinc-800 dark:text-zinc-205 font-bold">{item.name}</span>
+                            <span className="text-zinc-800 dark:text-zinc-200 font-bold">{item.name}</span>
                           </div>
                           <span className="text-zinc-500 dark:text-zinc-400 font-bold">{item.count} Orders</span>
                         </div>
@@ -710,49 +722,49 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
             {/* Right Column: Staff Status & Alerts / Timeline */}
             <div className="space-y-8">
               {/* Kitchen Staff Status Card */}
-              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-xs">
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h3 className="text-lg font-black tracking-tight text-zinc-955 dark:text-white">Kitchen Staff Status</h3>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-405">Current shifts and workloads</p>
+                    <h3 className="text-lg font-black tracking-tight text-zinc-900 dark:text-white">Kitchen Staff Status</h3>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Current shifts and workloads</p>
                   </div>
-                  <div className="p-3 bg-blue-50 text-blue-600 dark:bg-blue-955/20 dark:text-blue-400 rounded-2xl">
+                  <div className="p-3 bg-blue-500/10 text-blue-500 rounded-2xl border border-blue-500/10">
                     <FiBriefcase className="w-5 h-5" />
                   </div>
                 </div>
 
                 {staffWorkload.length === 0 ? (
-                  <p className="text-sm text-zinc-550 dark:text-zinc-455 font-bold">No active kitchen staff profiles registered.</p>
+                  <p className="text-sm text-zinc-500 italic">No active kitchen staff profiles registered.</p>
                 ) : (
-                  <div className="space-y-3.5">
+                  <div className="space-y-3">
                     {staffWorkload.map((staff) => {
                       const getStatusBadge = (status) => {
                         const s = status?.toLowerCase() || '';
                         if (s === 'preparing') {
-                          return 'bg-amber-105 text-amber-805 dark:bg-amber-955/30 dark:text-amber-400';
+                          return 'bg-amber-50 text-amber-600 dark:bg-amber-950/20 dark:text-amber-400';
                         }
                         if (s === 'available') {
-                          return 'bg-emerald-105 text-emerald-805 dark:bg-emerald-955/30 dark:text-emerald-400';
+                          return 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400';
                         }
-                        return 'bg-zinc-105 text-zinc-655 dark:bg-zinc-800 dark:text-zinc-400';
+                        return 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400';
                       };
 
                       return (
-                        <div key={staff._id || staff.id} className="flex items-center justify-between p-3.5 bg-zinc-50 dark:bg-zinc-850/60 rounded-2xl border border-zinc-150/40 dark:border-zinc-800">
+                        <div key={staff._id || staff.id} className="flex items-center justify-between p-3.5 bg-zinc-50 dark:bg-zinc-800/40 rounded-2xl border border-zinc-200 dark:border-zinc-700">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-950/30 flex items-center justify-center text-orange-655 font-extrabold dark:text-orange-400">
+                            <div className="w-9 h-9 rounded-xl bg-orange-500/10 text-orange-500 font-black text-sm flex items-center justify-center">
                               {staff.name?.charAt(0) || 'C'}
                             </div>
                             <div>
                               <h4 className="font-bold text-sm text-zinc-900 dark:text-white leading-tight">{staff.name}</h4>
-                              <p className="text-[11px] text-zinc-400 mt-0.5">@{staff.username || 'chef'} • {staff.activeCount} active</p>
+                              <p className="text-xs text-zinc-500 mt-0.5">@{staff.username || 'chef'} • {staff.activeCount} active</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
                             <select
                               value={staff.status}
                               onChange={(e) => handleStatusChange(staff.name || staff.username, e.target.value)}
-                              className={`text-[11px] font-bold rounded-lg border-0 px-2.5 py-1.5 focus:ring-2 focus:ring-orange-500/25 focus:outline-none cursor-pointer ${getStatusBadge(staff.status)}`}
+                              className={`text-xs font-bold rounded-lg border-0 px-2.5 py-1.5 focus:ring-1 focus:ring-orange-500/25 focus:outline-none cursor-pointer ${getStatusBadge(staff.status)}`}
                             >
                               <option value="Available" className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-100">Available</option>
                               <option value="Preparing" className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-100">Preparing</option>
@@ -766,123 +778,17 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
                 )}
               </div>
 
-              {/* Kitchen Alerts & Activity Timeline tabbed Card */}
-              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
-                <div className="flex items-center justify-between mb-4 border-b border-zinc-100 dark:border-zinc-800 pb-3">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setActiveAlertTab('alerts')}
-                      className={`text-sm font-extrabold tracking-tight pb-1 border-b-2 transition-all cursor-pointer ${
-                        activeAlertTab === 'alerts'
-                          ? 'border-orange-500 text-zinc-955 dark:text-white'
-                          : 'border-transparent text-zinc-400 hover:text-zinc-550 dark:text-zinc-500 dark:hover:text-zinc-400'
-                      }`}
-                    >
-                      Active Alerts {activeAlerts.length > 0 && `(${activeAlerts.length})`}
-                    </button>
-                    <button
-                      onClick={() => setActiveAlertTab('timeline')}
-                      className={`text-sm font-extrabold tracking-tight pb-1 border-b-2 transition-all cursor-pointer ml-4 ${
-                        activeAlertTab === 'timeline'
-                          ? 'border-orange-500 text-zinc-955 dark:text-white'
-                          : 'border-transparent text-zinc-400 hover:text-zinc-550 dark:text-zinc-500 dark:hover:text-zinc-400'
-                      }`}
-                    >
-                      Activity Timeline
-                    </button>
-                  </div>
-                  <div className="text-zinc-400">
-                    {activeAlertTab === 'alerts' ? (
-                      <FiBell className="w-5 h-5 text-orange-500" />
-                    ) : (
-                      <FiActivity className="w-5 h-5 text-indigo-500" />
-                    )}
-                  </div>
-                </div>
 
-                {activeAlertTab === 'alerts' ? (
-                  activeAlerts.length === 0 ? (
-                    <div className="py-8 text-center text-zinc-500">
-                      <FiCheckCircle className="w-10 h-10 text-emerald-500 mx-auto mb-2 animate-pulse" />
-                      <p className="text-xs font-bold text-zinc-700 dark:text-zinc-300">No active alerts</p>
-                      <p className="text-[10px] text-zinc-400 mt-0.5">Everything is operating smoothly!</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
-                      {activeAlerts.map((alert) => {
-                        const getAlertStyles = (priority) => {
-                          if (priority === 'High') {
-                            return {
-                              bg: 'bg-red-50/60 dark:bg-red-955/10',
-                              border: 'border-red-100 dark:border-red-950/20',
-                              iconColor: 'text-red-650 dark:text-red-400'
-                            };
-                          }
-                          return {
-                            bg: 'bg-orange-50/50 dark:bg-orange-955/10',
-                            border: 'border-orange-100 dark:border-orange-950/20',
-                            iconColor: 'text-orange-655 dark:text-orange-400'
-                          };
-                        };
-
-                        const alertStyle = getAlertStyles(alert.priority);
-
-                        return (
-                          <div key={alert.id} className={`p-3.5 border rounded-2xl flex items-start gap-3 transition-all ${alertStyle.bg} ${alertStyle.border}`}>
-                            <div className={`p-2 rounded-xl bg-white dark:bg-zinc-900 border ${alertStyle.border} ${alertStyle.iconColor} shrink-0`}>
-                              {alert.type === 'delay' ? (
-                                <FiClock className="w-4 h-4" />
-                              ) : alert.type === 'stock' ? (
-                                <FiAlertTriangle className="w-4 h-4" />
-                              ) : (
-                                <FiAlertCircle className="w-4 h-4" />
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex justify-between items-center">
-                                <span className={`text-[10px] font-black uppercase tracking-wider ${alertStyle.iconColor}`}>{alert.title}</span>
-                                <span className="text-[9px] font-bold text-zinc-400">{new Date(alert.time).toLocaleTimeString('en-LK', { hour: '2-digit', minute: '2-digit' })}</span>
-                              </div>
-                              <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 mt-1 leading-snug">{alert.message}</p>
-                            </div>
-                            <button
-                              onClick={() => acknowledgeAlert(alert.id)}
-                              className="text-zinc-400 hover:text-zinc-650 dark:hover:text-zinc-200 text-sm font-bold px-1.5 cursor-pointer leading-none"
-                              title="Acknowledge alert"
-                            >
-                              &times;
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )
-                ) : (
-                  <div className="relative pl-6 border-l-2 border-zinc-100 dark:border-zinc-800 ml-3 space-y-6 max-h-[350px] overflow-y-auto pr-2">
-                    {timelineEvents.map((evt) => (
-                      <div key={evt.id} className="relative group">
-                        <span className="absolute -left-[25px] top-1.5 w-3 h-3 rounded-full bg-orange-500 border-2 border-white dark:border-zinc-900 group-hover:scale-115 transition-transform" />
-                        <div className="flex flex-col text-xs">
-                          <h4 className="font-bold text-zinc-800 dark:text-zinc-200 leading-tight">{evt.text}</h4>
-                          <span className="text-[10px] text-zinc-400 font-bold mt-1">
-                            {new Date(evt.time).toLocaleTimeString('en-LK', { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
             </div>
           </div>
         </div>
       )}
 
       {activeTab === 'orders' && (
-        <div>
+        <div className="animate-fadeIn">
           {/* KITCHEN STAFF SUB-TABS */}
           {isKitchenStaffUser && (
-            <div className="flex border-b border-zinc-200 dark:border-zinc-800 mb-8 overflow-x-auto">
+            <div className="flex border-b border-zinc-200 dark:border-zinc-800 mb-8 overflow-x-auto pb-px">
               {[
                 { id: 'My Orders', label: 'My Assigned Orders', count: summaryMetrics.myPreparingCount, countColor: 'bg-orange-500' },
                 { id: 'Unassigned', label: 'Unassigned Queue', count: summaryMetrics.unassignedCount, countColor: 'bg-red-500' },
@@ -891,9 +797,9 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
                 <button
                   key={tab.id}
                   onClick={() => setKitchenStaffTab(tab.id)}
-                  className={`px-6 py-3.5 text-xs font-extrabold uppercase tracking-wider border-b-2 transition-all cursor-pointer whitespace-nowrap mr-4 flex items-center gap-2 ${
+                  className={`px-4 py-3 text-xs font-extrabold uppercase tracking-wider border-b-2 transition-all cursor-pointer whitespace-nowrap mr-6 flex items-center gap-2 ${
                     kitchenStaffTab === tab.id
-                      ? 'border-orange-500 text-orange-650 dark:text-orange-400 font-black'
+                      ? 'border-orange-500 text-orange-655 dark:text-orange-400 font-black'
                       : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'
                   }`}
                 >
@@ -909,7 +815,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
           )}
 
           {/* SEARCH & FILTER PANEL */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 mb-8 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-5">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-205 dark:border-zinc-800 rounded-2xl p-5 mb-8 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-5">
             <div className="relative flex-1 max-w-md">
               <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-450 w-4 h-4" />
               <input 
@@ -917,11 +823,11 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
                 placeholder="Search by Order ID or Customer Name..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 text-sm bg-transparent border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:border-orange-500 dark:bg-zinc-955 font-semibold"
+                className="w-full pl-10 pr-4 py-2.5 text-xs bg-transparent border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:border-orange-500 dark:bg-zinc-955 font-bold"
               />
             </div>
 
-            <div className="flex items-center gap-1.5 overflow-x-auto self-start md:self-center pb-2 md:pb-0">
+            <div className="flex items-center gap-1.5 overflow-x-auto self-start md:self-center">
               {[
                 { id: 'All', label: 'All' },
                 { id: 'Pending', label: 'Pending' },
@@ -933,7 +839,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
                   onClick={() => setStatusFilter(filt.id)}
                   className={`px-4 py-2 text-xs font-extrabold uppercase tracking-wider rounded-xl transition-all cursor-pointer ${
                     statusFilter === filt.id
-                      ? 'bg-zinc-955 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-sm'
+                      ? 'bg-zinc-950 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-sm'
                       : 'bg-zinc-50 dark:bg-zinc-850 hover:bg-zinc-100 text-zinc-650 dark:text-zinc-300 dark:hover:bg-zinc-800'
                   }`}
                 >
@@ -947,217 +853,229 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
             {/* Left Queue Panel */}
             <div className="xl:col-span-2 space-y-5">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between pb-2 border-b border-zinc-100 dark:border-zinc-850">
                 <h3 className="text-lg font-black tracking-tight text-zinc-955 dark:text-white">Preparation Queue</h3>
-                <span className="text-xs font-bold text-zinc-555">{filteredQueue.length} Active Orders</span>
+                <span className="text-xs font-bold text-zinc-500">{filteredQueue.length} Active Orders</span>
               </div>
 
               {loading ? (
                 <div className="space-y-4 animate-pulse">
                   {[...Array(3)].map((_, i) => (
-                    <div key={i} className="h-44 bg-zinc-200 dark:bg-zinc-850 rounded-2xl" />
+                    <div key={i} className="h-40 bg-zinc-200 dark:bg-zinc-850 rounded-3xl" />
                   ))}
                 </div>
               ) : filteredQueue.length === 0 ? (
-                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-12 text-center shadow-sm">
-                  <FiCoffee className="w-12 h-12 text-zinc-350 mx-auto mb-4" />
+                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-12 text-center shadow-xs">
+                  <FiCoffee className="w-12 h-12 text-zinc-300 mx-auto mb-4" />
                   <h4 className="text-base font-bold text-zinc-800 dark:text-zinc-200">No Orders in Queue</h4>
-                  <p className="text-xs text-zinc-550 dark:text-zinc-450 mt-1 max-w-sm mx-auto">There are no active orders matching your filter or waiting for kitchen preparation.</p>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-450 mt-1 max-w-sm mx-auto">There are no active orders matching your filter or waiting for kitchen preparation.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   <AnimatePresence mode="popLayout">
-                    {filteredQueue.map((order) => (
-                      <motion.div
-                        key={order._id}
-                        layout
-                        initial={{ opacity: 0, y: 15 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        className={`bg-white dark:bg-zinc-900 border transition-all rounded-2xl p-5 shadow-sm hover:shadow-md cursor-pointer relative overflow-hidden ${
-                          selectedOrder?._id === order._id 
-                            ? 'border-orange-500 dark:border-orange-500 ring-2 ring-orange-500/10'
-                            : 'border-zinc-200 dark:border-zinc-800'
-                        }`}
-                        onClick={() => setSelectedOrder(order)}
-                      >
-                        {/* Order Header */}
-                        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-xs font-black text-indigo-650 dark:text-indigo-400 font-mono">#{order._id?.substring(0, 8)}</span>
-                            <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider ${
-                              order.priority === 'High'
-                                ? 'bg-red-50 text-red-750 dark:bg-red-955/20 dark:text-red-400'
-                                : order.priority === 'Medium'
-                                ? 'bg-orange-50 text-orange-755 dark:bg-orange-955/20 dark:text-orange-400'
-                                : 'bg-zinc-50 text-zinc-655 dark:bg-zinc-800/40 dark:text-zinc-450'
-                            }`}>
-                              {order.priority} Priority
-                            </span>
-                            <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider ${
-                              order.workflowState === 'Ready for Pickup'
-                                ? 'bg-emerald-50 text-emerald-755 dark:bg-emerald-955/20 dark:text-emerald-400'
-                                : order.workflowState === 'In Progress'
-                                ? 'bg-amber-50 text-amber-755 dark:bg-amber-955/20 dark:text-amber-400'
-                                : 'bg-blue-50 text-blue-755 dark:bg-blue-955/20 dark:text-blue-400'
-                            }`}>
-                              {order.workflowState}
-                            </span>
+                    {filteredQueue.map((order) => {
+                      const getBorderClass = (priority) => {
+                        if (priority === 'High') return 'border-l-4 border-l-red-500';
+                        if (priority === 'Medium') return 'border-l-4 border-l-orange-500';
+                        return 'border-l-4 border-l-zinc-300 dark:border-l-zinc-700';
+                      };
 
-                            {/* Chef indicator */}
-                            {isKitchenStaffUser ? (
-                              order.kitchenStaff ? (
-                                <span className="px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider bg-indigo-50 text-indigo-755 dark:bg-indigo-950/20 dark:text-indigo-400 flex items-center gap-1">
-                                  <FiUser className="w-2.5 h-2.5" />
-                                  <span>{order.kitchenStaff === (adminUser?.name || adminUser?.username) ? 'My Order' : order.kitchenStaff}</span>
-                                </span>
-                              ) : (
-                                <span className="px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 italic">
-                                  Unassigned
-                                </span>
-                              )
-                            ) : (
-                              <div onClick={(e) => e.stopPropagation()} className="flex items-center">
-                                <select
-                                  value={order.kitchenStaff || ''}
-                                  onChange={(e) => updateOrderStatus(order._id, null, e.target.value)}
-                                  className="text-[9px] font-extrabold uppercase bg-zinc-50 dark:bg-zinc-850 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2 py-0.5 focus:outline-none focus:border-orange-500 text-zinc-700 dark:text-zinc-350 cursor-pointer"
-                                >
-                                  <option value="">-- Assign Chef --</option>
-                                  {staffList.map(s => (
-                                    <option key={s.id} value={s.name}>{s.name}</option>
-                                  ))}
-                                </select>
-                              </div>
-                            )}
-                          </div>
-                          <span className="text-[10px] text-zinc-450 font-bold">
-                            Ordered: {new Date(order.date).toLocaleTimeString('en-LK', { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
+                      return (
+                        <motion.div
+                          key={order._id}
+                          layout
+                          initial={{ opacity: 0, y: 15 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          className={`bg-white dark:bg-zinc-900 border transition-all rounded-3xl p-5 shadow-xs hover:shadow-md cursor-pointer relative overflow-hidden ${getBorderClass(order.priority)} ${
+                            selectedOrder?._id === order._id 
+                              ? 'border-orange-500 dark:border-orange-500 ring-2 ring-orange-500/10'
+                              : 'border-zinc-200 dark:border-zinc-800'
+                          }`}
+                          onClick={() => setSelectedOrder(order)}
+                        >
+                          {/* Order Header */}
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 pb-3 border-b border-zinc-100 dark:border-zinc-800/80">
+                            {/* Left Meta: ID, Status, Priority */}
+                            <div className="flex flex-wrap items-center gap-2">
+                              {/* 1. Order ID Monospace Pill */}
+                              <span className="px-2.5 py-0.5 rounded-full text-xs font-black text-orange-600 font-mono bg-orange-50 dark:bg-orange-950/20">
+                                #{order._id?.substring(0, 8).toUpperCase()}
+                              </span>
 
-                        {/* Order Summary details */}
-                        <div className="mb-4">
-                          <h4 className="text-sm font-black text-zinc-950 dark:text-white leading-tight">
-                            {order.address?.firstName} {order.address?.lastName}
-                          </h4>
-                          <div className="mt-2 text-xs text-zinc-650 dark:text-zinc-300 font-semibold space-y-1.5">
-                            {order.items?.map((it, idx) => (
-                              <div key={idx} className="flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-zinc-300 flex-shrink-0" />
-                                <span>{it.name} <strong className="text-orange-600 font-black">x{it.quantity}</strong></span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
+                              {/* 2. Workflow State Status Pill */}
+                              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
+                                order.workflowState === 'Ready for Pickup'
+                                  ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400'
+                                  : order.workflowState === 'In Progress'
+                                  ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/20 dark:text-amber-400'
+                                  : 'bg-blue-50 text-blue-600 dark:bg-blue-950/20 dark:text-blue-400'
+                              }`}>
+                                {order.workflowState}
+                              </span>
 
-                        {/* Footer instructions and action triggers */}
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                          <div className="flex flex-wrap items-center gap-4 text-xs font-bold">
-                            <div className="flex items-center gap-1.5 text-zinc-500">
-                              <FiClock className="w-4 h-4 text-zinc-400" />
-                              <span>Est. Prep: {order.estPrepTime}</span>
+                              {/* 3. Priority Level Pill */}
+                              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
+                                order.priority === 'High'
+                                  ? 'bg-red-50 text-red-600 dark:bg-red-950/20 dark:text-red-400'
+                                  : order.priority === 'Medium'
+                                  ? 'bg-orange-50 text-orange-600 dark:bg-orange-950/20 dark:text-orange-400'
+                                  : 'bg-zinc-50 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400'
+                              }`}>
+                                {order.priority} Priority
+                              </span>
                             </div>
-                            {order.instructions && (
-                              <div className="flex items-center gap-1.5 text-red-650">
-                                <FiAlertCircle className="w-4 h-4" />
-                                <span className="max-w-[220px] truncate">Note: {order.instructions}</span>
+
+                            {/* Right Meta: Chef Assignment & Timestamp */}
+                            <div className="flex flex-wrap items-center gap-3">
+                              {/* 4. Chef Assignment Dropdown */}
+                              {isKitchenStaffUser ? (
+                                order.kitchenStaff ? (
+                                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-indigo-50 text-indigo-600 dark:bg-indigo-950/20 dark:text-indigo-400 flex items-center gap-1">
+                                    <FiUser className="w-2.5 h-2.5" />
+                                    <span>{order.kitchenStaff === (adminUser?.name || adminUser?.username) ? 'My Order' : order.kitchenStaff}</span>
+                                  </span>
+                                ) : (
+                                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 italic">
+                                    Unassigned
+                                  </span>
+                                )
+                              ) : (
+                                <div onClick={(e) => e.stopPropagation()} className="flex items-center">
+                                  <select
+                                    value={order.kitchenStaff || ''}
+                                    onChange={(e) => updateOrderStatus(order._id, null, e.target.value)}
+                                    className="text-xs font-bold uppercase bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-full px-3 py-0.5 focus:outline-none focus:border-orange-500 text-zinc-700 dark:text-zinc-300 cursor-pointer h-6 leading-none"
+                                  >
+                                    <option value="">-- Assign Chef --</option>
+                                    {staffList.map(s => (
+                                      <option key={s.id} value={s.name}>{s.name}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              )}
+
+                              <span className="text-xs text-zinc-500 font-bold">
+                                {new Date(order.date).toLocaleTimeString('en-LK', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Order Summary details */}
+                          <div className="mb-4">
+                            <h4 className="text-sm font-black text-zinc-900 dark:text-white leading-tight">
+                              {order.address?.firstName} {order.address?.lastName}
+                            </h4>
+                            <div className="flex flex-wrap gap-1.5 mt-2.5">
+                              {order.items?.map((it, idx) => (
+                                <span key={idx} className="inline-block px-2.5 py-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold text-zinc-700 dark:text-zinc-300">
+                                  {it.name} <strong className="text-orange-500 ml-1">x{it.quantity}</strong>
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Footer instructions and action triggers */}
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                            <div className="flex flex-wrap items-center gap-4 text-xs font-bold">
+                              <div className="flex items-center gap-1.5 text-zinc-500">
+                                <FiClock className="w-4 h-4 text-zinc-400" />
+                                <span>Est. Prep: {order.estPrepTime}</span>
                               </div>
-                            )}
-                          </div>
+                              {order.instructions && (
+                                <div className="flex items-center gap-1.5 text-red-500">
+                                  <FiAlertCircle className="w-4 h-4" />
+                                  <span className="max-w-[220px] truncate">Note: {order.instructions}</span>
+                                </div>
+                              )}
+                            </div>
 
-                          {/* Workflow buttons */}
-                          <div className="flex items-center gap-2 self-end sm:self-center" onClick={(e) => e.stopPropagation()}>
-                            {isKitchenStaffUser ? (
-                              <>
-                                {/* Claim order */}
-                                {(!order.kitchenStaff || order.kitchenStaff.trim() === '') && (
-                                  <button
-                                    onClick={() => updateOrderStatus(order._id, 'Preparing', adminUser.name || adminUser.username)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-extrabold shadow-sm hover:shadow active:scale-[0.97] transition-all cursor-pointer animate-pulse"
-                                  >
-                                    <FiUser className="w-3.5 h-3.5" />
-                                    <span>Claim &amp; Start</span>
-                                  </button>
-                                )}
-
-                                {/* Claimed by ME */}
-                                {(order.kitchenStaff === (adminUser.name || adminUser.username)) && (
-                                  <div className="flex items-center gap-2">
+                            {/* Workflow buttons */}
+                            <div className="flex items-center gap-2 self-end sm:self-center" onClick={(e) => e.stopPropagation()}>
+                              {isKitchenStaffUser ? (
+                                <>
+                                  {/* Claim order */}
+                                  {(!order.kitchenStaff || order.kitchenStaff.trim() === '') && (
                                     <button
-                                      onClick={() => updateOrderStatus(order._id, null, '')}
-                                      className="flex items-center gap-1 px-2.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-300 rounded-xl text-xs font-extrabold active:scale-[0.97] transition-all cursor-pointer"
-                                      title="Release order"
+                                      onClick={() => updateOrderStatus(order._id, 'Preparing', adminUser.name || adminUser.username)}
+                                      className="px-3.5 py-2 bg-indigo-650 hover:bg-indigo-755 text-white rounded-xl text-xs font-extrabold shadow-sm active:scale-95 transition cursor-pointer flex items-center gap-1"
                                     >
-                                      <span>Release</span>
+                                      <FiUser className="w-3.5 h-3.5" /> Claim &amp; Start
                                     </button>
+                                  )}
 
-                                    {order.workflowState === 'Pending' && (
+                                  {/* Claimed by ME */}
+                                  {(order.kitchenStaff === (adminUser.name || adminUser.username)) && (
+                                    <div className="flex items-center gap-2">
                                       <button
-                                        onClick={() => updateOrderStatus(order._id, 'Preparing')}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-650 hover:bg-orange-700 text-white rounded-xl text-xs font-extrabold shadow-sm hover:shadow active:scale-[0.97] transition-all cursor-pointer"
+                                        onClick={() => updateOrderStatus(order._id, null, '')}
+                                        className="px-3 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:text-zinc-300 rounded-xl text-xs font-extrabold active:scale-95 transition cursor-pointer"
+                                        title="Release order"
                                       >
-                                        <FiPlay className="w-3.5 h-3.5" />
-                                        <span>Start Preparing</span>
+                                        Release
                                       </button>
-                                    )}
-                                    {order.workflowState === 'In Progress' && (
-                                      <button
-                                        onClick={() => updateOrderStatus(order._id, 'Ready for Delivery')}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold shadow-sm hover:shadow active:scale-[0.97] transition-all cursor-pointer"
-                                      >
-                                        <FiCheck className="w-3.5 h-3.5" />
-                                        <span>Mark as Ready</span>
-                                      </button>
-                                    )}
-                                    {order.workflowState === 'Ready for Pickup' && (
-                                      <span className="flex items-center gap-1.5 text-xs text-emerald-600 font-extrabold bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1.5 rounded-xl">
-                                        <FiCheckCircle className="w-3.5 h-3.5" />
-                                        <span>Ready</span>
-                                      </span>
-                                    )}
-                                  </div>
-                                )}
 
-                                {/* Claimed by someone else */}
-                                {order.kitchenStaff && order.kitchenStaff !== (adminUser.name || adminUser.username) && (
-                                  <span className="text-xs text-zinc-400 dark:text-zinc-500 font-bold italic">
-                                    Claimed by {order.kitchenStaff}
-                                  </span>
-                                )}
-                              </>
-                            ) : (
-                              <>
-                                {order.workflowState === 'Pending' && (
-                                  <button
-                                    onClick={() => updateOrderStatus(order._id, 'Preparing')}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-650 hover:bg-orange-700 text-white rounded-xl text-xs font-extrabold shadow-sm hover:shadow active:scale-[0.97] transition-all cursor-pointer"
-                                  >
-                                    <FiPlay className="w-3.5 h-3.5" />
-                                    <span>Start Preparing</span>
-                                  </button>
-                                )}
-                                {order.workflowState === 'In Progress' && (
-                                  <button
-                                    onClick={() => updateOrderStatus(order._id, 'Ready for Delivery')}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold shadow-sm hover:shadow active:scale-[0.97] transition-all cursor-pointer"
-                                  >
-                                    <FiCheck className="w-3.5 h-3.5" />
-                                    <span>Mark as Ready</span>
-                                  </button>
-                                )}
-                                {order.workflowState === 'Ready for Pickup' && (
-                                  <span className="flex items-center gap-1.5 text-xs text-emerald-600 font-extrabold bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1.5 rounded-xl">
-                                    <FiCheckCircle className="w-3.5 h-3.5" />
-                                    <span>Waiting for Delivery</span>
-                                  </span>
-                                )}
-                              </>
-                            )}
+                                      {order.workflowState === 'Pending' && (
+                                        <button
+                                          onClick={() => updateOrderStatus(order._id, 'Preparing')}
+                                          className="px-3.5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-extrabold shadow-xs transition active:scale-95 cursor-pointer flex items-center gap-1"
+                                        >
+                                          <FiPlay className="w-3.5 h-3.5" /> Start Preparing
+                                        </button>
+                                      )}
+                                      {order.workflowState === 'In Progress' && (
+                                        <button
+                                          onClick={() => updateOrderStatus(order._id, 'Ready for Delivery')}
+                                          className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold shadow-xs transition active:scale-95 cursor-pointer flex items-center gap-1"
+                                        >
+                                          <FiCheck className="w-3.5 h-3.5" /> Mark Ready
+                                        </button>
+                                      )}
+                                      {order.workflowState === 'Ready for Pickup' && (
+                                        <span className="flex items-center gap-1 text-xs text-emerald-600 font-extrabold bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1.5 rounded-xl">
+                                          <FiCheckCircle className="w-3.5 h-3.5" /> Ready
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* Claimed by someone else */}
+                                  {order.kitchenStaff && order.kitchenStaff !== (adminUser.name || adminUser.username) && (
+                                    <span className="text-xs text-zinc-400 dark:text-zinc-550 font-bold italic">
+                                      Claimed by {order.kitchenStaff}
+                                    </span>
+                                  )}
+                                </>
+                              ) : (
+                                <>
+                                  {order.workflowState === 'Pending' && (
+                                    <button
+                                      onClick={() => updateOrderStatus(order._id, 'Preparing')}
+                                      className="px-3.5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-extrabold shadow-xs transition active:scale-95 cursor-pointer flex items-center gap-1"
+                                    >
+                                      <FiPlay className="w-3.5 h-3.5" /> Start Preparing
+                                    </button>
+                                  )}
+                                  {order.workflowState === 'In Progress' && (
+                                    <button
+                                      onClick={() => updateOrderStatus(order._id, 'Ready for Delivery')}
+                                      className="px-3.5 py-2 bg-emerald-650 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold shadow-xs transition active:scale-95 cursor-pointer flex items-center gap-1"
+                                    >
+                                      <FiCheck className="w-3.5 h-3.5" /> Mark Ready
+                                    </button>
+                                  )}
+                                  {order.workflowState === 'Ready for Pickup' && (
+                                    <span className="flex items-center gap-1 text-xs text-emerald-600 font-extrabold bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1.5 rounded-xl">
+                                      <FiCheckCircle className="w-3.5 h-3.5" /> Ready for Delivery
+                                    </span>
+                                  )}
+                                </>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </motion.div>
-                    ))}
+                        </motion.div>
+                      );
+                    })}
                   </AnimatePresence>
                 </div>
               )}
@@ -1166,7 +1084,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
             {/* Right Details Panel */}
             <div className="xl:col-span-1">
               {selectedOrder ? (
-                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm min-h-[360px] relative overflow-hidden flex flex-col sticky top-24">
+                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-xs min-h-[360px] relative overflow-hidden flex flex-col sticky top-24">
                   <h3 className="text-lg font-black tracking-tight text-zinc-950 dark:text-white mb-4 flex items-center gap-2">
                     <FiList className="w-5 h-5 text-orange-500" />
                     Order Details
@@ -1176,31 +1094,31 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
                     <div className="space-y-5">
                       <div className="flex items-center justify-between pb-3.5 border-b border-zinc-100 dark:border-zinc-800">
                         <div>
-                          <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider block">Order Reference</span>
-                          <span className="font-mono text-zinc-900 dark:text-zinc-250 font-black">#{selectedOrder._id}</span>
+                          <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider block">Order Reference</span>
+                          <span className="font-mono text-zinc-900 dark:text-zinc-200 font-black">#{selectedOrder._id}</span>
                         </div>
-                        <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider ${
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
                           selectedOrder.workflowState === 'Ready for Pickup' 
-                            ? 'bg-emerald-50 text-emerald-755 dark:bg-emerald-500/15'
+                            ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15'
                             : selectedOrder.workflowState === 'In Progress'
-                            ? 'bg-amber-50 text-amber-755 dark:bg-amber-500/15'
-                            : 'bg-blue-50 text-blue-755 dark:bg-blue-500/15'
+                            ? 'bg-amber-50 text-amber-600 dark:bg-amber-500/15'
+                            : 'bg-blue-50 text-blue-600 dark:bg-blue-500/15'
                         }`}>
                           {selectedOrder.workflowState}
                         </span>
                       </div>
 
                       {/* Customer details */}
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2.5 text-zinc-655 dark:text-zinc-300">
+                      <div className="space-y-3 p-4 bg-zinc-50 dark:bg-zinc-800/40 rounded-2xl border border-zinc-100 dark:border-zinc-800/50">
+                        <div className="flex items-center gap-2.5 text-zinc-700 dark:text-zinc-300">
                           <FiUser className="w-4 h-4 text-zinc-400 flex-shrink-0" />
                           <span className="font-bold">{selectedOrder.address?.firstName} {selectedOrder.address?.lastName}</span>
                         </div>
-                        <div className="flex items-center gap-2.5 text-zinc-655 dark:text-zinc-300">
+                        <div className="flex items-center gap-2.5 text-zinc-700 dark:text-zinc-300">
                           <FiPhone className="w-4 h-4 text-zinc-400 flex-shrink-0" />
                           <span className="font-semibold">{selectedOrder.address?.phone || 'No phone recorded'}</span>
                         </div>
-                        <div className="flex items-start gap-2.5 text-zinc-655 dark:text-zinc-300">
+                        <div className="flex items-start gap-2.5 text-zinc-700 dark:text-zinc-300">
                           <FiMapPin className="w-4 h-4 text-zinc-400 flex-shrink-0 mt-0.5" />
                           <span className="font-semibold leading-relaxed">
                             {selectedOrder.address?.street}, {selectedOrder.address?.city}
@@ -1209,8 +1127,8 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
                       </div>
 
                       {/* Chef Assignment block */}
-                      <div className="p-3.5 bg-zinc-50 dark:bg-zinc-850/50 border border-zinc-150 dark:border-zinc-800 rounded-2xl">
-                        <span className="text-[9px] text-zinc-400 font-bold uppercase tracking-wider block mb-2">Chef Assignment</span>
+                      <div className="p-3.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl">
+                        <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider block mb-2">Chef Assignment</span>
                         {isKitchenStaffUser ? (
                           <div className="flex items-center justify-between gap-3 text-xs">
                             <span className="font-bold text-zinc-800 dark:text-zinc-200">
@@ -1221,14 +1139,14 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
                             {!selectedOrder.kitchenStaff || selectedOrder.kitchenStaff.trim() === '' ? (
                               <button
                                 onClick={() => updateOrderStatus(selectedOrder._id, 'Preparing', adminUser.name || adminUser.username)}
-                                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl transition-all cursor-pointer"
+                                className="px-3 py-1.5 bg-indigo-650 hover:bg-indigo-755 text-white font-extrabold rounded-xl transition cursor-pointer"
                               >
                                 Claim
                               </button>
                             ) : selectedOrder.kitchenStaff === (adminUser?.name || adminUser?.username) ? (
                               <button
                                 onClick={() => updateOrderStatus(selectedOrder._id, null, '')}
-                                className="px-3 py-1.5 bg-zinc-200 hover:bg-zinc-250 dark:bg-zinc-800 dark:hover:bg-zinc-705 text-zinc-800 dark:text-zinc-200 font-extrabold rounded-xl transition-all cursor-pointer"
+                                className="px-3 py-1.5 bg-zinc-200 hover:bg-zinc-250 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 font-bold rounded-xl transition cursor-pointer"
                               >
                                 Release
                               </button>
@@ -1253,10 +1171,10 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
 
                       {/* Items List */}
                       <div>
-                        <h4 className="font-bold text-zinc-400 uppercase text-[9px] tracking-wider mb-2">Ordered Items</h4>
+                        <h4 className="font-bold text-zinc-500 uppercase text-xs tracking-wider mb-2">Ordered Items</h4>
                         <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
                           {selectedOrder.items?.map((it, idx) => (
-                            <div key={idx} className="flex justify-between items-center bg-zinc-50 dark:bg-zinc-850 p-2.5 rounded-xl">
+                            <div key={idx} className="flex justify-between items-center bg-zinc-50 dark:bg-zinc-800 p-2.5 rounded-xl">
                               <span className="font-bold text-zinc-800 dark:text-zinc-200">{it.name} <strong className="text-orange-500 font-extrabold ml-1">x{it.quantity}</strong></span>
                               <span className="font-extrabold text-zinc-900 dark:text-white">{formatMoney(it.price * it.quantity)}</span>
                             </div>
@@ -1266,10 +1184,10 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
 
                       {/* Special instructions */}
                       {selectedOrder.instructions && (
-                        <div className="p-3 bg-red-50 dark:bg-red-950/10 border border-red-100 dark:border-red-950/20 rounded-xl text-red-650 dark:text-red-400 flex items-start gap-2">
+                        <div className="p-3 bg-red-50 dark:bg-red-950/10 border border-red-100 dark:border-red-950/20 rounded-xl text-red-600 dark:text-red-400 flex items-start gap-2">
                           <FiAlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                           <div>
-                            <span className="font-bold block uppercase text-[8px] tracking-wider mb-0.5">Special Instructions</span>
+                            <span className="font-bold block uppercase text-xs tracking-wider mb-0.5">Special Instructions</span>
                             <p className="font-semibold leading-relaxed">{selectedOrder.instructions}</p>
                           </div>
                         </div>
@@ -1288,7 +1206,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
                            {selectedOrder.workflowState === 'Pending' && (
                              <button
                                onClick={() => updateOrderStatus(selectedOrder._id, 'Preparing')}
-                               className="w-full flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-3 text-xs font-bold text-white shadow-md shadow-orange-500/10 hover:bg-orange-600 transition active:scale-95 cursor-pointer"
+                               className="w-full flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-3 text-xs font-bold text-white shadow-xs hover:bg-orange-600 transition active:scale-95 cursor-pointer"
                              >
                                <FiPlay className="w-4 h-4" />
                                <span>Start Preparing</span>
@@ -1297,7 +1215,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
                            {selectedOrder.workflowState === 'In Progress' && (
                              <button
                                onClick={() => updateOrderStatus(selectedOrder._id, 'Ready for Delivery')}
-                               className="w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-xs font-bold text-white shadow-md shadow-emerald-500/10 hover:bg-emerald-600 transition active:scale-95 cursor-pointer"
+                               className="w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-xs font-bold text-white shadow-xs hover:bg-emerald-600 transition active:scale-95 cursor-pointer"
                              >
                                <FiCheck className="w-4 h-4" />
                                <span>Mark as Ready for Delivery</span>
@@ -1305,7 +1223,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
                            )}
                            {selectedOrder.workflowState === 'Ready for Pickup' && (
                              <div className="p-3 bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-150 dark:border-emerald-900/30 rounded-xl text-center">
-                               <span className="text-xs font-bold text-emerald-800 dark:text-emerald-400">Order is Prepared & Ready!</span>
+                               <span className="text-xs font-bold text-emerald-805 dark:text-emerald-400">Order is Prepared & Ready!</span>
                              </div>
                            )}
                         </>
@@ -1314,8 +1232,8 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
                   </div>
                 </div>
               ) : (
-                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm space-y-4">
-                  <h4 className="text-base font-black text-zinc-950 dark:text-white">Active Queue Stats</h4>
+                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-xs space-y-4">
+                  <h4 className="text-base font-black text-zinc-955 dark:text-white">Active Queue Stats</h4>
                   <div className="space-y-3.5 text-xs">
                     <div className="flex justify-between items-center font-bold">
                       <span className="text-zinc-500">Preparing Orders</span>
@@ -1338,16 +1256,16 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
       )}
 
       {activeTab === 'history' && (
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm animate-fadeIn">
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-xs animate-fadeIn">
           <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h3 className="text-lg font-black tracking-tight text-zinc-950 dark:text-white">Order History</h3>
-              <p className="text-xs text-zinc-550 dark:text-zinc-405 mt-0.5">List of completed and dispatched preparation logs</p>
+              <h3 className="text-lg font-black tracking-tight text-zinc-955 dark:text-white">Order History</h3>
+              <p className="text-xs text-zinc-405 dark:text-zinc-500 mt-0.5 font-medium">List of completed and dispatched preparation logs</p>
             </div>
             
             {/* Search History */}
             <div className="relative max-w-xs w-full">
-              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 w-3.5 h-3.5" />
+              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-405 w-3.5 h-3.5" />
               <input 
                 type="text"
                 placeholder="Search history by customer name or ID..."
@@ -1360,24 +1278,24 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
 
           {completedOrders.length === 0 ? (
             <div className="text-center py-12">
-              <FiCheckCircle className="w-12 h-12 text-zinc-350 mx-auto mb-4" />
+              <FiCheckCircle className="w-12 h-12 text-zinc-300 mx-auto mb-4" />
               <h4 className="text-base font-bold text-zinc-800 dark:text-zinc-200">No History Records</h4>
-              <p className="text-xs text-zinc-550 dark:text-zinc-450 mt-1">There are no completed kitchen logs matching your search.</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-450 mt-1">There are no completed kitchen logs matching your search.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
+            <div className="overflow-x-auto font-sans rounded-2xl border border-zinc-200 dark:border-zinc-800">
+              <table className="w-full text-left text-sm border-collapse">
                 <thead>
-                  <tr className="border border-orange-100 bg-orange-50/80 text-[10px] font-black uppercase tracking-wider text-orange-900 dark:border-orange-500/20 dark:bg-orange-500/10 dark:text-orange-300">
-                    <th className="p-3.5 rounded-l-2xl">Order ID</th>
-                    <th className="p-3.5">Customer</th>
-                    <th className="p-3.5">Prepared By</th>
-                    <th className="p-3.5">Dishes Summary</th>
-                    <th className="p-3.5">Total Amount</th>
-                    <th className="p-3.5 rounded-r-2xl">Status</th>
+                  <tr className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 text-xs font-black uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                    <th className="p-4 rounded-l-2xl">Order ID</th>
+                    <th className="p-4">Customer</th>
+                    <th className="p-4">Prepared By</th>
+                    <th className="p-4">Dishes Summary</th>
+                    <th className="p-4">Total Amount</th>
+                    <th className="p-4 rounded-r-2xl">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-150 dark:divide-zinc-800">
+                <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800 font-medium">
                   {completedOrders
                     .filter(order => {
                       const query = searchQuery.toLowerCase().trim();
@@ -1387,23 +1305,23 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
                     })
                     .map((order) => (
                       <tr key={order._id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-850/50 transition">
-                        <td className="p-3.5 font-mono font-bold text-indigo-650 dark:text-indigo-400">#{order._id?.substring(0, 8)}</td>
-                        <td className="p-3.5">
+                        <td className="p-4 font-bold text-indigo-600 dark:text-indigo-400">#{order._id?.substring(0, 8).toUpperCase()}</td>
+                        <td className="p-4">
                           <div className="font-bold text-zinc-900 dark:text-white">
                             {order.address?.firstName} {order.address?.lastName}
                           </div>
-                          <div className="text-[10px] text-zinc-455 font-medium mt-0.5">{order.address?.city}</div>
+                          <div className="text-xs text-zinc-500 font-bold uppercase tracking-wider mt-0.5">{order.address?.city}</div>
                         </td>
-                        <td className="p-3.5 font-bold text-zinc-700 dark:text-zinc-300">{order.kitchenStaff || 'Unassigned'}</td>
-                        <td className="p-3.5 font-semibold text-zinc-655 dark:text-zinc-400">
+                        <td className="p-4 font-bold text-zinc-700 dark:text-zinc-300">{order.kitchenStaff || 'Unassigned'}</td>
+                        <td className="p-4 font-semibold text-zinc-600 dark:text-zinc-400">
                           {order.items?.map(it => `${it.name} (x${it.quantity})`).join(', ')}
                         </td>
-                        <td className="p-3.5 font-black text-zinc-955 dark:text-white">{formatMoney(order.amount)}</td>
-                        <td className="p-3.5">
-                          <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider ${
+                        <td className="p-4 font-black text-zinc-955 dark:text-white">{formatMoney(order.amount)}</td>
+                        <td className="p-4">
+                          <span className={`px-2.5 py-1 rounded-xl text-xs font-bold uppercase tracking-wider ${
                             order.status?.toLowerCase() === 'delivered'
-                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/20 dark:text-emerald-400'
-                              : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/20 dark:text-indigo-400'
+                              ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400'
+                              : 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/20 dark:text-indigo-400'
                           }`}>
                             {order.status}
                           </span>

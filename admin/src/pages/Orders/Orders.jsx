@@ -13,7 +13,7 @@ const Orders = ({ url, adminToken, adminUser }) => {
   const isDeliveryStaff = normalizedRole === ROLES.DELIVERY_STAFF;
   const statusOptions = isDeliveryStaff
     ? ['Out for delivery', 'Delivered']
-    : ['Order Placed', 'Food Processing', 'Preparing', 'Ready for Delivery', 'Out for delivery', 'Delivered'];
+    : ['Order Placed', 'Food Processing', 'Ready for Delivery', 'Out for delivery', 'Delivered'];
 
   const fetchAllOrders = async () => {
     try {

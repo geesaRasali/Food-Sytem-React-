@@ -184,7 +184,7 @@ const Add = ({ url, adminToken }) => {
                                     />
                                 </div>
 
-                                 {/* Pricing, Category & Supplier */}
+                                 {/* Pricing, Category */}
                                  <div className='grid grid-cols-1 gap-6 md:grid-cols-3'>
                                      <div className='space-y-2'>
                                          <label className='ml-1 text-sm font-bold text-zinc-700 dark:text-zinc-300'>Category</label>
@@ -201,22 +201,7 @@ const Add = ({ url, adminToken }) => {
                                              ))}
                                          </select>
                                      </div>
-                                     <div className='space-y-2'>
-                                         <label className='ml-1 text-sm font-bold text-zinc-700 dark:text-zinc-300'>Supplier</label>
-                                         <select
-                                             name='supplier'
-                                             onChange={onChangeHandler}
-                                             value={data.supplier}
-                                             className='w-full cursor-pointer rounded-2xl border-none bg-white px-5 py-4 text-zinc-900 outline-none transition focus:bg-white focus:ring-2 focus:ring-orange-400 dark:bg-gray-800 dark:text-white dark:focus:bg-gray-800'
-                                         >
-                                             <option value="">No Supplier</option>
-                                             {suppliersList.map((s) => (
-                                                 <option key={s._id} value={s.name} className='bg-white text-zinc-900 dark:bg-gray-800 dark:text-gray-200'>
-                                                     {s.name}
-                                                 </option>
-                                             ))}
-                                         </select>
-                                     </div>
+                                   
                                      <div className='space-y-2'>
                                          <label className='ml-1 text-sm font-bold text-zinc-700 dark:text-zinc-300'>Price (LKR)</label>
                                          <input
