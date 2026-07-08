@@ -463,7 +463,7 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
               Welcome, {adminUser?.name || 'Store Manager'}!
             </h1>
             <p className="text-xs font-extrabold text-orange-655 dark:text-orange-455 mt-1.5 uppercase tracking-widest">
-              Role: Storekeeper | Restaurant Inventory Control Dashboard
+              Role:  | Restaurant Inventory Control Dashboard
             </p>
           </div>
         </div>
@@ -934,9 +934,9 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
               <div className='mb-4 flex flex-wrap items-center gap-4 text-xs'>
                 <div className='flex items-center gap-2'>
                   <span className='h-2.5 w-2.5 rounded-sm bg-blue-500' />
-                  <span className='text-zinc-500 dark:text-zinc-400'>Income</span>
+                  <span className='text-zinc-500 dark:text-zinc-400'>Total Income</span>
                 </div>
-                <p className='font-bold text-zinc-900 dark:text-zinc-100'>{formatMoney(totalIncome)}</p>
+                <p className='font-bold text-zinc-900 dark:text-zinc-100'>{formatMoney(totalRevenue)}</p>
               </div>
 
               <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className='h-52 w-full'>
@@ -967,7 +967,6 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
                 {weeklyChartData.map((day) => (
                   <div key={day.key} className='text-center'>
                     <p className='text-[11px] font-semibold text-zinc-500 dark:text-zinc-400'>{day.day}</p>
-                    <p className='mt-1 text-[10px] text-zinc-400 dark:text-zinc-500'>{formatShortMoney(day.amount)}</p>
                   </div>
                 ))}
               </div>

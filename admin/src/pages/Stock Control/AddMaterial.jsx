@@ -1,8 +1,9 @@
- import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { assets, stockMaterials } from '../../assets/assets'
 import axios from 'axios'
 import { toast } from 'react-toastify'
-import { FiUpload, FiPlusCircle, FiInfo, FiArrowLeft } from 'react-icons/fi'
+import { FiUpload, FiPlusCircle, FiInfo } from 'react-icons/fi'
+import { MdCloudUpload } from 'react-icons/md'
 import { useNavigate } from 'react-router-dom'
 
 const AddMaterial = ({ url, adminToken }) => {
@@ -10,7 +11,7 @@ const AddMaterial = ({ url, adminToken }) => {
     const [image, setImage] = useState(false)
     const [selectedPredefined, setSelectedPredefined] = useState(null)
     const [suppliersList, setSuppliersList] = useState([])
-    
+
     const materialCategories = [
         'bakery and grains',
         'Beverages',
@@ -32,9 +33,6 @@ const AddMaterial = ({ url, adminToken }) => {
         unit: 'kg',
         expiryDate: ''
     })
-
-    console.log("stockMaterials keys:", Object.keys(stockMaterials));
-    console.log("current category:", data.category);
 
     useEffect(() => {
         const fetchSuppliers = async () => {
@@ -80,7 +78,7 @@ const AddMaterial = ({ url, adminToken }) => {
         if (data.expiryDate) {
             formData.append('expiryDate', data.expiryDate)
         }
-        
+
         if (image) {
             formData.append('image', image)
         } else if (selectedPredefined) {
@@ -123,173 +121,389 @@ const AddMaterial = ({ url, adminToken }) => {
         setData(prev => ({ ...prev, name: item.name }))
     }
 
-    const previewImage = image ? URL.createObjectURL(image) : (selectedPredefined ? selectedPredefined.image : assets.upload_area)
+    const previewImage = image
+        ? URL.createObjectURL(image)
+        : selectedPredefined
+            ? selectedPredefined.image
+            : null
 
     return (
-        <div className='min-h-screen bg-[#fcfcfc] p-4 md:p-10 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 animate-fadeIn'>
-            <div className='mx-auto max-w-5xl'>
-
+        <div style={styles.page}>
+            <div style={styles.container}>
 
                 {/* Header */}
-                <div className='mb-8'>
-                    <h1 className='text-3xl font-black tracking-tight text-zinc-900 dark:text-zinc-100'>
-                        Add Stock Material
-                    </h1>
-                    <p className='text-zinc-500 mt-1'>Register a new raw material or ingredient to your inventory control.</p>
+                <div style={styles.header}>
+                    <h1 style={styles.title}>Add Stock Material</h1>
+                    <p style={styles.subtitle}>Register a new raw material or ingredient to your inventory control.</p>
                 </div>
 
-                <form onSubmit={onSubmitHandler} className='grid grid-cols-1 gap-8 lg:grid-cols-12'>
-                    {/* Left: Image Side */}
-                    <div className='lg:col-span-4'>
-                        <div className='sticky top-24 space-y-6 rounded-[2.5rem] bg-white p-6 shadow-[0_10px_40px_rgba(0,0,0,0.04)] dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-850'>
-                            <p className='flex items-center gap-2 font-bold text-zinc-800 dark:text-zinc-200'>
-                                <FiUpload size={18} className='text-orange-500' />
-                                Material Image
-                            </p>
-                            <label htmlFor='image' className='group relative block aspect-square cursor-pointer overflow-hidden rounded-4xl border-2 border-dashed border-zinc-200 transition-all hover:border-orange-400 dark:border-zinc-800'>
-                                <img src={previewImage} className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${!image && 'p-10 opacity-30'}`} alt='Preview' />
-                                <div className='absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition group-hover:opacity-100'>
-                                    <p className='text-xs font-bold text-white'>UPLOAD IMAGE</p>
+                <form onSubmit={onSubmitHandler} style={styles.formGrid}>
+
+                    {/* LEFT: Image Card */}
+                    <div style={styles.imageCard}>
+                        <p style={styles.imageCardTitle}>
+                            <FiUpload size={16} color="#f97316" />
+                            &nbsp; Material Image
+                        </p>
+
+                        <label htmlFor="image" style={styles.uploadLabel}>
+                            {previewImage ? (
+                                <img
+                                    src={previewImage}
+                                    alt="Preview"
+                                    style={styles.previewImg}
+                                />
+                            ) : (
+                                <div style={styles.uploadPlaceholder}>
+                                    <MdCloudUpload size={54} color="#cbd5e1" />
+                                    <span style={styles.uploadText}>Upload</span>
                                 </div>
-                            </label>
-                            <input onChange={(e) => setImage(e.target.files[0])} type='file' id='image' hidden />
-                            <div className='rounded-2xl bg-zinc-50 p-4 dark:bg-zinc-800/50'>
-                                <p className='flex items-start gap-2 text-xs leading-relaxed text-zinc-500'>
-                                    <FiInfo size={14} className='mt-0.5 shrink-0' />
-                                    Provide a clear image of the ingredient or packaging for quick visual tracking.
-                                </p>
-                            </div>
+                            )}
+                        </label>
+                        <input
+                            onChange={(e) => setImage(e.target.files[0])}
+                            type="file"
+                            id="image"
+                            hidden
+                        />
+
+                        <div style={styles.infoBox}>
+                            <FiInfo size={13} color="#94a3b8" style={{ marginTop: 2, flexShrink: 0 }} />
+                            <span style={styles.infoText}>
+                                Provide a clear image of the ingredient or packaging for quick visual tracking.
+                            </span>
                         </div>
                     </div>
 
-                    {/* Right: Content Side */}
-                    <div className='space-y-6 lg:col-span-8'>
-                        <div className='rounded-[2.5rem] bg-white p-8 shadow-[0_10px_40px_rgba(0,0,0,0.04)] dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-850'>
-                            <div className='grid gap-6'>
-                                {/* Name Input */}
-                                <div className='space-y-2'>
-                                    <label className='ml-1 text-sm font-bold text-zinc-700 dark:text-zinc-300'>Material / Ingredient Name</label>
-                                    <input
-                                        name='name'
-                                        onChange={onChangeHandler}
-                                        value={data.name}
-                                        className='w-full rounded-2xl border-none bg-zinc-50 dark:bg-zinc-800/50 px-5 py-4 text-zinc-900 dark:text-white outline-none transition placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-orange-400'
-                                        placeholder='Ex: Fresh Red Tomatoes'
-                                        required
-                                    />
-                                </div>
+                    {/* RIGHT: Form Card */}
+                    <div style={styles.formCard}>
 
-                                {/* Predefined Materials Grid */}
-                                {stockMaterials[data.category] && (
-                                    <div className='space-y-3 animate-fadeIn'>
-                                        <label className='ml-1 text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400'>Select Predefined Ingredient</label>
-                                        <div className='grid grid-cols-2 sm:grid-cols-5 gap-3 max-h-64 overflow-y-auto p-3 bg-zinc-50 dark:bg-zinc-800/30 rounded-2xl border border-zinc-100 dark:border-zinc-800/60'>
-                                            {stockMaterials[data.category].map((item) => (
-                                                <button
-                                                    type="button"
-                                                    key={item.name}
-                                                    onClick={() => handleSelectPredefined(item)}
-                                                    className={`p-2 bg-white dark:bg-zinc-900 border rounded-xl flex flex-col items-center gap-1.5 transition-all hover:scale-[1.02] cursor-pointer ${
-                                                        selectedPredefined?.name === item.name 
-                                                            ? 'border-orange-500 ring-2 ring-orange-500/20' 
-                                                            : 'border-zinc-200 dark:border-zinc-800/50'
-                                                    }`}
-                                                >
-                                                    <img src={item.image} alt={item.name} className='w-12 h-12 object-cover rounded-lg' />
-                                                    <span className='text-[10px] font-bold text-zinc-650 dark:text-zinc-300 text-center leading-tight truncate w-full'>{item.name}</span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
+                        {/* Material Name */}
+                        <div style={styles.fieldGroup}>
+                            <label style={styles.label}>Material / Ingredient Name</label>
+                            <input
+                                name="name"
+                                onChange={onChangeHandler}
+                                value={data.name}
+                                style={styles.input}
+                                placeholder="Ex: Fresh Red Tomatoes"
+                                required
+                                onFocus={e => e.target.style.borderColor = '#f97316'}
+                                onBlur={e => e.target.style.borderColor = '#e5e7eb'}
+                            />
+                        </div>
 
-                                {/* Pricing, Category, Supplier & Quantity */}
-                                <div className='grid grid-cols-1 gap-6 md:grid-cols-5'>
-                                    <div className='space-y-2'>
-                                        <label className='ml-1 text-sm font-bold text-zinc-700 dark:text-zinc-300'>Category</label>
-                                        <select
-                                            name='category'
-                                            onChange={onChangeHandler}
-                                            value={data.category}
-                                            className='w-full cursor-pointer rounded-2xl border-none bg-zinc-50 dark:bg-zinc-800/50 px-5 py-4 text-zinc-900 dark:text-white outline-none transition focus:bg-white focus:ring-2 focus:ring-orange-400'
-                                        >
-                                            {materialCategories.map((c) => (
-                                                <option key={c} value={c}>
-                                                    {c}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className='space-y-2'>
-                                        <label className='ml-1 text-sm font-bold text-zinc-700 dark:text-zinc-300'>Supplier</label>
-                                        <select
-                                            name='supplier'
-                                            onChange={onChangeHandler}
-                                            value={data.supplier}
-                                            className='w-full cursor-pointer rounded-2xl border-none bg-zinc-50 dark:bg-zinc-800/50 px-5 py-4 text-zinc-900 dark:text-white outline-none transition focus:bg-white focus:ring-2 focus:ring-orange-400'
-                                            required
-                                        >
-                                            {suppliersList.length > 0 ? (
-                                                suppliersList.map((s) => (
-                                                    <option key={s._id} value={s.name}>
-                                                        {s.name}
-                                                    </option>
-                                                ))
-                                            ) : (
-                                                <option value="">No suppliers found</option>
-                                            )}
-                                        </select>
-                                    </div>
-                                    <div className='space-y-2'>
-                                        <label className='ml-1 text-sm font-bold text-zinc-700 dark:text-zinc-300'>Price (LKR)</label>
-                                        <input
-                                            name='price'
-                                            type='number'
-                                            onChange={onChangeHandler}
-                                            value={data.price}
-                                            className='w-full rounded-2xl border-none bg-zinc-50 dark:bg-zinc-800/50 px-5 py-4 text-zinc-900 dark:text-white outline-none transition placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-orange-400'
-                                            placeholder='0.00'
-                                            required
-                                        />
-                                    </div>
-                                    <div className='space-y-2'>
-                                        <label className='ml-1 text-sm font-bold text-zinc-700 dark:text-zinc-300'>Quantity</label>
-                                        <input
-                                            name='quantity'
-                                            type='number'
-                                            onChange={onChangeHandler}
-                                            value={data.quantity}
-                                            className='w-full rounded-2xl border-none bg-zinc-50 dark:bg-zinc-800/50 px-5 py-4 text-zinc-900 dark:text-white outline-none transition placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-orange-400'
-                                            placeholder='e.g. 50'
-                                            required
-                                        />
-                                    </div>
-                                    <div className='space-y-2'>
-                                        <label className='ml-1 text-sm font-bold text-zinc-700 dark:text-zinc-300'>Expiry Date</label>
-                                        <input
-                                            name='expiryDate'
-                                            type='date'
-                                            onChange={onChangeHandler}
-                                            value={data.expiryDate}
-                                            className='w-full rounded-2xl border-none bg-zinc-50 dark:bg-zinc-800/50 px-5 py-4 text-zinc-900 dark:text-white outline-none transition focus:bg-white focus:ring-2 focus:ring-orange-400'
-                                        />
-                                    </div>
-                                </div>
+
+                        {/* Row: Category | Supplier | Price | Quantity | Expiry */}
+                        <div style={styles.row5}>
+                            <div style={styles.fieldGroup}>
+                                <label style={styles.label}>Category</label>
+                                <select
+                                    name="category"
+                                    onChange={onChangeHandler}
+                                    value={data.category}
+                                    style={styles.select}
+                                    onFocus={e => e.target.style.borderColor = '#f97316'}
+                                    onBlur={e => e.target.style.borderColor = '#e5e7eb'}
+                                >
+                                    {materialCategories.map((c) => (
+                                        <option key={c} value={c}>{c}</option>
+                                    ))}
+                                </select>
                             </div>
 
-                            <button
-                                type='submit'
-                                className='mt-10 flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-600 hover:bg-orange-700 py-5 text-lg font-black text-white shadow-xl shadow-orange-200 dark:shadow-none transition-all hover:-translate-y-0.5 active:scale-95 cursor-pointer'
-                            >
-                                <FiPlusCircle size={20} />
-                                ADD MATERIAL TO INVENTORY
-                            </button>
+                            <div style={styles.fieldGroup}>
+                                <label style={styles.label}>Supplier</label>
+                                <select
+                                    name="supplier"
+                                    onChange={onChangeHandler}
+                                    value={data.supplier}
+                                    style={styles.select}
+                                    required
+                                    onFocus={e => e.target.style.borderColor = '#f97316'}
+                                    onBlur={e => e.target.style.borderColor = '#e5e7eb'}
+                                >
+                                    {suppliersList.length > 0 ? (
+                                        suppliersList.map((s) => (
+                                            <option key={s._id} value={s.name}>{s.name}</option>
+                                        ))
+                                    ) : (
+                                        <option value="">No suppliers found</option>
+                                    )}
+                                </select>
+                            </div>
+
+                            <div style={styles.fieldGroup}>
+                                <label style={styles.label}>Price (LKR)</label>
+                                <input
+                                    name="price"
+                                    type="number"
+                                    onChange={onChangeHandler}
+                                    value={data.price}
+                                    style={styles.input}
+                                    placeholder="0.00"
+                                    required
+                                    onFocus={e => e.target.style.borderColor = '#f97316'}
+                                    onBlur={e => e.target.style.borderColor = '#e5e7eb'}
+                                />
+                            </div>
+
+                            <div style={styles.fieldGroup}>
+                                <label style={styles.label}>Quantity</label>
+                                <input
+                                    name="quantity"
+                                    type="number"
+                                    onChange={onChangeHandler}
+                                    value={data.quantity}
+                                    style={styles.input}
+                                    placeholder="e.g. 50"
+                                    required
+                                    onFocus={e => e.target.style.borderColor = '#f97316'}
+                                    onBlur={e => e.target.style.borderColor = '#e5e7eb'}
+                                />
+                            </div>
+
+                            <div style={styles.fieldGroup}>
+                                <label style={styles.label}>Expiry Date</label>
+                                <input
+                                    name="expiryDate"
+                                    type="date"
+                                    onChange={onChangeHandler}
+                                    value={data.expiryDate}
+                                    style={styles.input}
+                                    onFocus={e => e.target.style.borderColor = '#f97316'}
+                                    onBlur={e => e.target.style.borderColor = '#e5e7eb'}
+                                />
+                            </div>
                         </div>
+
+                        {/* Submit Button */}
+                        <button
+                            type="submit"
+                            style={styles.submitBtn}
+                            onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#ea6c0a'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+                            onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#f97316'; e.currentTarget.style.transform = 'translateY(0)' }}
+                        >
+                            <FiPlusCircle size={18} />
+                            &nbsp; ADD MATERIAL TO INVENTORY
+                        </button>
                     </div>
+
                 </form>
             </div>
         </div>
     )
+}
+
+/* ─── Inline Styles ──────────────────────────────────────────────── */
+const styles = {
+    page: {
+        minHeight: '100vh',
+        backgroundColor: '#f9fafb',
+        padding: '32px 24px',
+        fontFamily: "'Inter', 'Segoe UI', sans-serif",
+    },
+    container: {
+        maxWidth: 1100,
+        margin: '0 auto',
+    },
+    header: {
+        marginBottom: 28,
+    },
+    title: {
+        fontSize: 26,
+        fontWeight: 800,
+        color: '#111827',
+        margin: 0,
+        letterSpacing: '-0.5px',
+    },
+    subtitle: {
+        fontSize: 13,
+        color: '#6b7280',
+        marginTop: 4,
+    },
+    formGrid: {
+        display: 'grid',
+        gridTemplateColumns: '260px 1fr',
+        gap: 20,
+        alignItems: 'start',
+    },
+
+    /* ── Image Card ── */
+    imageCard: {
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        padding: '20px 18px',
+        boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+        border: '1px solid #f0f0f0',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 14,
+    },
+    imageCardTitle: {
+        display: 'flex',
+        alignItems: 'center',
+        fontSize: 13,
+        fontWeight: 700,
+        color: '#1f2937',
+        margin: 0,
+    },
+    uploadLabel: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        aspectRatio: '1 / 1',
+        borderRadius: 12,
+        border: '2px dashed #d1d5db',
+        cursor: 'pointer',
+        overflow: 'hidden',
+        position: 'relative',
+        backgroundColor: '#fafafa',
+        transition: 'border-color 0.2s',
+    },
+    uploadPlaceholder: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+        height: '100%',
+        gap: 6,
+    },
+    uploadText: {
+        fontSize: 18,
+        fontWeight: 600,
+        color: '#cbd5e1',
+        letterSpacing: '0.02em',
+    },
+    previewImg: {
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
+    },
+    infoBox: {
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 7,
+        backgroundColor: '#f8fafc',
+        borderRadius: 8,
+        padding: '10px 12px',
+    },
+    infoText: {
+        fontSize: 11,
+        color: '#94a3b8',
+        lineHeight: 1.5,
+    },
+
+    /* ── Form Card ── */
+    formCard: {
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        padding: '24px 24px',
+        boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+        border: '1px solid #f0f0f0',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 20,
+    },
+    fieldGroup: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 6,
+        flex: 1,
+    },
+    label: {
+        fontSize: 12,
+        fontWeight: 600,
+        color: '#374151',
+    },
+    input: {
+        width: '100%',
+        padding: '10px 14px',
+        borderRadius: 8,
+        border: '1.5px solid #e5e7eb',
+        fontSize: 13,
+        color: '#111827',
+        outline: 'none',
+        backgroundColor: '#fff',
+        transition: 'border-color 0.2s',
+        boxSizing: 'border-box',
+    },
+    select: {
+        width: '100%',
+        padding: '10px 14px',
+        borderRadius: 8,
+        border: '1.5px solid #e5e7eb',
+        fontSize: 13,
+        color: '#111827',
+        outline: 'none',
+        backgroundColor: '#fff',
+        cursor: 'pointer',
+        transition: 'border-color 0.2s',
+        boxSizing: 'border-box',
+    },
+    row5: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(5, 1fr)',
+        gap: 14,
+    },
+    predefinedGrid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(5, 1fr)',
+        gap: 10,
+        maxHeight: 200,
+        overflowY: 'auto',
+        padding: 10,
+        backgroundColor: '#f9fafb',
+        borderRadius: 10,
+        border: '1px solid #e5e7eb',
+    },
+    predefinedItem: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 5,
+        padding: '8px 4px',
+        borderRadius: 10,
+        backgroundColor: '#fff',
+        cursor: 'pointer',
+        transition: 'all 0.15s',
+    },
+    predefinedImg: {
+        width: 44,
+        height: 44,
+        objectFit: 'cover',
+        borderRadius: 8,
+    },
+    predefinedName: {
+        fontSize: 10,
+        fontWeight: 600,
+        color: '#374151',
+        textAlign: 'center',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+        width: '100%',
+    },
+    submitBtn: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        width: '100%',
+        padding: '14px 0',
+        backgroundColor: '#f97316',
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: 800,
+        letterSpacing: '0.04em',
+        borderRadius: 10,
+        border: 'none',
+        cursor: 'pointer',
+        marginTop: 4,
+        transition: 'background-color 0.2s, transform 0.1s',
+        boxShadow: '0 4px 14px rgba(249,115,22,0.35)',
+    },
 }
 
 export default AddMaterial
