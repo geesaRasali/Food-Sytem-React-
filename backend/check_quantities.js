@@ -1,14 +1,15 @@
 import mongoose from 'mongoose';
-import orderModel from './models/orderModel.js';
+import foodModel from './models/foodModel.js';
 
 async function run() {
   try {
     await mongoose.connect('mongodb://localhost:27017/food-del');
     console.log("Connected successfully");
-    const orders = await orderModel.find({});
-    orders.forEach(o => {
-      console.log(`- ID: ${o._id}, Amount: ${o.amount}, Date: ${o.date}`);
-    });
+    const result = await foodModel.updateOne(
+      { name: "Lamb Ribs" },
+      { $set: { expiryDate: new Date("2026-07-20") } }
+    );
+    console.log("Update result:", result);
   } catch (err) {
     console.error(err);
   } finally {

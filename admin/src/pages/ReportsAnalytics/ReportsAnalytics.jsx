@@ -80,6 +80,7 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
   const [customersCount, setCustomersCount] = useState(0);
   const [staff, setStaff] = useState([]);
   const [messages, setMessages] = useState([]);
+  const [supplyLogs, setSupplyLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState('Last Month'); // 'Today', 'Last 7 Days', 'Last Month', 'Custom Range'
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
@@ -114,13 +115,15 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
           foodsRes,
           customersRes,
           staffRes,
-          messagesRes
+          messagesRes,
+          suppliesRes
         ] = await Promise.all([
           axios.get(`${url}/api/order/list`, { headers }).catch(() => null),
           axios.get(`${url}/api/food/list`).catch(() => null),
           axios.get(`${url}/api/user/customers/count`, { headers }).catch(() => null),
           axios.get(`${url}/api/user/staff`, { headers }).catch(() => null),
           axios.get(`${url}/api/contact/list`, { headers }).catch(() => null),
+          axios.get(`${url}/api/food/supplies`, { headers }).catch(() => null),
         ]);
 
         if (ordersRes?.data?.success) setOrders(ordersRes.data.data || []);
@@ -128,6 +131,7 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
         if (customersRes?.data?.success) setCustomersCount(customersRes.data.count || 0);
         if (staffRes?.data?.success) setStaff(staffRes.data.users || []);
         if (messagesRes?.data?.success) setMessages(messagesRes.data.data || []);
+        if (suppliesRes?.data?.success) setSupplyLogs(suppliesRes.data.data || []);
       } catch (err) {
         console.error("Error fetching report data:", err);
         toast.error("Failed to sync some reports databases. Using local metrics.");
@@ -305,17 +309,34 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
 
   // ---------------- Kitchen, Delivery, Inventory, Staff widget metrics ----------------
   const kitchenPerformance = useMemo(() => {
-    const pendingKitchenOrders = filteredOrders.filter(o => o.status === 'Food Processing' || o.status === 'Preparing').length;
-    const preparedCount = filteredOrders.filter(o => o.status === 'Ready' || o.status === 'Delivered').length;
+    const pendingKitchenOrders = filteredOrders.filter(o => {
+      const s = o.status?.toLowerCase() || '';
+      return s === 'food processing' || s === 'preparing' || s === 'order placed';
+    }).length;
+    
+    const preparedOrders = filteredOrders.filter(o => {
+      const s = o.status?.toLowerCase() || '';
+      return s === 'ready' || s === 'delivered';
+    });
+    const preparedCount = preparedOrders.length;
+    
+    let totalPrepTime = 0;
+    preparedOrders.forEach(o => {
+      const itemCount = (o.items || []).reduce((sum, item) => sum + Number(item.quantity || 1), 0);
+      totalPrepTime += (10 + itemCount * 2);
+    });
+    
+    const avgTime = preparedCount > 0 ? Math.round(totalPrepTime / preparedCount) : 0;
+
     return {
       preparedCount,
       pendingKitchenOrders,
-      avgPrepTime: preparedCount > 0 ? '12.5 mins' : '0 mins'
+      avgPrepTime: avgTime > 0 ? `${avgTime} mins` : '0 mins'
     };
   }, [filteredOrders]);
 
   const deliveryPerformance = useMemo(() => {
-    const deliveredToday = filteredOrders.filter(o => o.status === 'Delivered').length;
+    const deliveredToday = filteredOrders.filter(o => o.status?.toLowerCase() === 'delivered').length;
     return {
       deliveredToday,
       avgDeliveryTime: deliveredToday > 0 ? '24 mins' : '0 mins',
@@ -327,12 +348,22 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
     const rawMaterials = activeFoods.filter(item => materialCategories.includes(item.category));
     const totalVal = rawMaterials.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 0)), 0);
     const lowStockCount = rawMaterials.filter(item => Number(item.quantity || 0) <= 5).length;
+    
+    // Count supplies restocked today
+    const now = new Date();
+    const todaySupplies = supplyLogs.filter(log => {
+      const logDate = new Date(log.date);
+      return logDate.getFullYear() === now.getFullYear() &&
+             logDate.getMonth() === now.getMonth() &&
+             logDate.getDate() === now.getDate();
+    });
+
     return {
       totalValue: totalVal,
       lowStockItems: lowStockCount,
-      restockedToday: 0
+      restockedToday: todaySupplies.length
     };
-  }, [activeFoods]);
+  }, [activeFoods, supplyLogs]);
 
   const staffSummary = useMemo(() => {
     const totalStaff = activeStaff.length;
@@ -469,50 +500,62 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
       });
     });
 
-    // Stock updates (Simulated)
-    activities.push({
-      id: 'stk-upd-1',
-      type: 'stock',
-      title: 'Warehouse Stock Restocked',
-      description: 'Recorded incoming stock receipt for Spicy Chicken Pizza and Clover Salad',
-      time: new Date(Date.now() - 3600000 * 4)
+    // Warehouse supply updates (Loaded from database)
+    supplyLogs.forEach(log => {
+      activities.push({
+        id: log._id,
+        type: 'stock',
+        title: 'Material Stock Restocked',
+        description: `Restocked ${log.quantity} ${log.unit || 'units'} of ${log.materialName} from ${log.supplierName}`,
+        time: new Date(log.date)
+      });
     });
 
     activities.sort((a, b) => b.time - a.time);
     return activities.slice(0, 6);
-  }, [filteredOrders, activeMessages, activeStaff]);
+  }, [filteredOrders, activeMessages, activeStaff, supplyLogs]);
 
   // ---------------- Ledger Report Table ----------------
   const ledgerReportTable = useMemo(() => {
-    const days = 7;
-    const table = [];
-    const now = new Date();
+    const groups = {};
     const pad = (num) => String(num).padStart(2, '0');
 
-    for (let i = 0; i < days; i++) {
-      const d = new Date();
-      d.setDate(now.getDate() - i);
-      const dateStr = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+    activeOrders.forEach(o => {
+      if (!o.date) return;
+      const od = new Date(o.date);
+      const dateStr = `${pad(od.getDate())}/${pad(od.getMonth() + 1)}/${od.getFullYear()}`;
+      
+      if (!groups[dateStr]) {
+        groups[dateStr] = {
+          date: dateStr,
+          orders: 0,
+          revenue: 0,
+          cancelled: 0,
+          delivered: 0,
+          rawDate: new Date(od.getFullYear(), od.getMonth(), od.getDate())
+        };
+      }
 
-      // Filter orders on this day
-      const dayOrders = activeOrders.filter(o => {
-        const od = new Date(o.date);
-        return od.getFullYear() === d.getFullYear() && od.getMonth() === d.getMonth() && od.getDate() === d.getDate();
-      });
+      const grp = groups[dateStr];
+      grp.orders += 1;
+      
+      const isCancelled = o.status?.toLowerCase().includes('cancel');
+      const isDelivered = o.status?.toLowerCase() === 'delivered';
 
-      const orderCount = dayOrders.length;
-      const revenue = dayOrders.filter(o => !o.status?.toLowerCase().includes('cancel')).reduce((sum, o) => sum + Number(o.amount || 0), 0);
-      const cancelled = dayOrders.filter(o => o.status?.toLowerCase().includes('cancel')).length;
-      const delivered = dayOrders.filter(o => o.status?.toLowerCase() === 'delivered').length;
+      if (!isCancelled) {
+        grp.revenue += Number(o.amount || 0);
+      }
+      if (isCancelled) {
+        grp.cancelled += 1;
+      }
+      if (isDelivered) {
+        grp.delivered += 1;
+      }
+    });
 
-      table.push({
-        date: dateStr,
-        orders: orderCount,
-        revenue,
-        cancelled,
-        delivered
-      });
-    }
+    // Convert object to array and sort by date descending
+    const table = Object.values(groups);
+    table.sort((a, b) => b.rawDate - a.rawDate);
 
     return table;
   }, [activeOrders]);

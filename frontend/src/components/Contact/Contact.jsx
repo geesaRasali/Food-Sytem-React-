@@ -67,14 +67,14 @@ const Contact = () => {
   };
 
   return (
-    <section className="min-h-screen bg-zinc-50 dark:bg-zinc-950 px-4 py-14 sm:px-8 lg:px-14 transition-colors duration-200 font-sans">
+    <section className="min-h-screen bg-zinc-50 px-4 py-14 sm:px-8 lg:px-14 transition-colors duration-200 font-sans">
       <div className="mx-auto w-full max-w-7xl">
         {/* Heading */}
         <div className="text-center">
-          <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-white sm:text-5xl">
+          <h1 className="mt-6 text-4xl font-extrabold tracking-tight text-zinc-900 sm:text-5xl">
             Get in Touch With Us
           </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-zinc-500 dark:text-zinc-400 sm:text-base font-medium">
+          <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-zinc-500 sm:text-base font-medium">
             Have a question about your order, delivery, or support? Our Urban
             Foods team is here to help you with a smooth and friendly service
             experience.
@@ -83,29 +83,29 @@ const Contact = () => {
 
         <div className="mt-12 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
           {/* Left - Form */}
-          <div className="rounded-[28px] border border-zinc-200 bg-white p-6 shadow-[0_14px_35px_rgba(15,23,42,0.06)] dark:border-zinc-800 dark:bg-zinc-900 sm:p-8 transition-colors">
+          <div className="rounded-[28px] border border-zinc-200 bg-white p-6 shadow-[0_14px_35px_rgba(15,23,42,0.06)] sm:p-8 transition-colors">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-orange-500 dark:bg-orange-950/20 dark:text-orange-450">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-orange-500">
                 <FaPaperPlane />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-zinc-950 dark:text-white">
+                <h2 className="text-2xl font-bold text-zinc-950">
                   Send us a Message
                 </h2>
-                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400 font-medium">
+                <p className="mt-1 text-sm text-zinc-500 font-medium">
                   Fill out the form and our team will get back to you soon.
                 </p>
               </div>
             </div>
 
             {submitted && (
-              <div className="mt-6 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-semibold text-orange-600 dark:bg-orange-950/20 dark:text-orange-400 dark:border-orange-900/40">
+              <div className="mt-6 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-semibold text-orange-600">
                 Message sent successfully. We’ll contact you soon.
               </div>
             )}
 
             {submitError && (
-              <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600 dark:bg-red-950/20 dark:text-red-400 dark:border-red-900/40">
+              <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
                 {submitError}
               </div>
             )}
@@ -119,7 +119,7 @@ const Contact = () => {
                   onChange={handleChange}
                   placeholder="Your Name"
                   required
-                  className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-800 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100/50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-orange-500 dark:focus:ring-orange-950/50"
+                  className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-800 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100/50"
                 />
 
                 <input
@@ -129,7 +129,7 @@ const Contact = () => {
                   onChange={handleChange}
                   placeholder="Your Email"
                   required
-                  className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-800 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100/50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-orange-500 dark:focus:ring-orange-950/50"
+                  className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-800 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100/50"
                 />
               </div>
 
@@ -139,7 +139,7 @@ const Contact = () => {
                 value={formData.phone}
                 onChange={handleChange}
                 placeholder="Phone Number or Subject"
-                className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-800 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100/50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-orange-500 dark:focus:ring-orange-950/50"
+                className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-800 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100/50"
               />
 
               <textarea
@@ -149,7 +149,7 @@ const Contact = () => {
                 placeholder="Your Message"
                 required
                 rows={7}
-                className="w-full resize-none rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-800 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100/50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-orange-500 dark:focus:ring-orange-950/50"
+                className="w-full resize-none rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-800 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100/50"
               />
 
               <button
@@ -164,16 +164,16 @@ const Contact = () => {
 
           {/* Right - Contact Info */}
           <div className="space-y-6">
-            <div className="rounded-[28px] border border-zinc-200 bg-white p-6 shadow-[0_14px_35px_rgba(15,23,42,0.06)] dark:border-zinc-800 dark:bg-zinc-900 sm:p-8 transition-colors">
+            <div className="rounded-[28px] border border-zinc-200 bg-white p-6 shadow-[0_14px_35px_rgba(15,23,42,0.06)] sm:p-8 transition-colors">
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-orange-500 dark:bg-orange-950/20 dark:text-orange-450">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-orange-500">
                   <FaHeadset />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-zinc-950 dark:text-white">
+                  <h2 className="text-2xl font-bold text-zinc-950">
                     Contact Information
                   </h2>
-                  <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400 font-medium">
+                  <p className="mt-1 text-sm text-zinc-500 font-medium">
                     Reach us for support, delivery questions, or general inquiries.
                   </p>
                 </div>
@@ -181,48 +181,48 @@ const Contact = () => {
 
               <div className="mt-8 space-y-5">
                 <div className="flex items-start gap-4">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-50 text-orange-500 dark:bg-orange-950/20 dark:text-orange-450">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-50 text-orange-500">
                     <FaEnvelope />
                   </div>
                   <div>
-                    <p className="font-bold text-zinc-900 dark:text-white">Email Address</p>
-                    <p className="mt-1 text-sm text-zinc-650 dark:text-zinc-400 font-medium">
+                    <p className="font-bold text-zinc-900">Email Address</p>
+                    <p className="mt-1 text-sm text-zinc-650 font-medium">
                       support@urbanfoods.com
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-50 text-orange-500 dark:bg-orange-950/20 dark:text-orange-450">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-50 text-orange-500">
                     <FaPhoneAlt />
                   </div>
                   <div>
-                    <p className="font-bold text-zinc-900 dark:text-white">Phone Number</p>
-                    <p className="mt-1 text-sm text-zinc-650 dark:text-zinc-400 font-medium">
+                    <p className="font-bold text-zinc-900">Phone Number</p>
+                    <p className="mt-1 text-sm text-zinc-650 font-medium">
                       +94 71 234 5678
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-50 text-orange-500 dark:bg-orange-950/20 dark:text-orange-450">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-50 text-orange-500">
                     <FaClock />
                   </div>
                   <div>
-                    <p className="font-bold text-zinc-900 dark:text-white">Working Hours</p>
-                    <p className="mt-1 text-sm text-zinc-650 dark:text-zinc-400 font-medium">
+                    <p className="font-bold text-zinc-900">Working Hours</p>
+                    <p className="mt-1 text-sm text-zinc-650 font-medium">
                       Monday - Sunday : 8.00 AM - 11.00 PM
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-50 text-orange-500 dark:bg-orange-950/20 dark:text-orange-450">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-50 text-orange-500">
                     <FaMapMarkerAlt />
                   </div>
                   <div>
-                    <p className="font-bold text-zinc-900 dark:text-white">Location</p>
-                    <p className="mt-1 text-sm text-zinc-650 dark:text-zinc-400 font-medium">
+                    <p className="font-bold text-zinc-900">Location</p>
+                    <p className="mt-1 text-sm text-zinc-650 font-medium">
                       Colombo, Sri Lanka
                     </p>
                   </div>
@@ -231,24 +231,24 @@ const Contact = () => {
             </div>
 
             {/* Map */}
-            <div className="overflow-hidden rounded-[28px] border border-zinc-200 bg-white shadow-[0_14px_35px_rgba(15,23,42,0.06)] dark:border-zinc-800 dark:bg-zinc-900 transition-colors">
+            <div className="overflow-hidden rounded-[28px] border border-zinc-200 bg-white shadow-[0_14px_35px_rgba(15,23,42,0.06)] transition-colors">
               <iframe
                 title="Urban Foods Service Area"
                 src="https://www.openstreetmap.org/export/embed.html?bbox=79.84%2C6.87%2C79.89%2C6.93&layer=mapnik"
-                className="h-64 w-full dark:invert-[0.9] dark:hue-rotate-180"
+                className="h-64 w-full"
                 loading="lazy"
               />
             </div>
 
             {/* Socials */}
-            <div className="rounded-[28px] border border-zinc-200 bg-white p-6 text-center shadow-[0_14px_35px_rgba(15,23,42,0.06)] dark:border-zinc-800 dark:bg-zinc-900 transition-colors">
-              <p className="text-lg font-bold text-zinc-900 dark:text-white">Follow Us</p>
+            <div className="rounded-[28px] border border-zinc-200 bg-white p-6 text-center shadow-[0_14px_35px_rgba(15,23,42,0.06)] transition-colors">
+              <p className="text-lg font-bold text-zinc-900">Follow Us</p>
               <div className="mt-4 flex items-center justify-center gap-3">
                 <a
                   href="https://facebook.com"
                   target="_blank"
                   rel="noreferrer"
-                  className="flex h-11 w-11 items-center justify-center rounded-full bg-orange-50 text-orange-500 dark:bg-orange-950/20 dark:text-orange-400 transition hover:bg-orange-500 hover:text-white dark:hover:bg-orange-500 dark:hover:text-white"
+                  className="flex h-11 w-11 items-center justify-center rounded-full bg-orange-50 text-orange-500 transition hover:bg-orange-500 hover:text-white"
                 >
                   <FaFacebookF />
                 </a>
@@ -257,7 +257,7 @@ const Contact = () => {
                   href="https://twitter.com"
                   target="_blank"
                   rel="noreferrer"
-                  className="flex h-11 w-11 items-center justify-center rounded-full bg-orange-50 text-orange-500 dark:bg-orange-950/20 dark:text-orange-400 transition hover:bg-orange-500 hover:text-white dark:hover:bg-orange-500 dark:hover:text-white"
+                  className="flex h-11 w-11 items-center justify-center rounded-full bg-orange-50 text-orange-500 transition hover:bg-orange-500 hover:text-white"
                 >
                   <FaTwitter />
                 </a>
@@ -266,7 +266,7 @@ const Contact = () => {
                   href="https://instagram.com"
                   target="_blank"
                   rel="noreferrer"
-                  className="flex h-11 w-11 items-center justify-center rounded-full bg-orange-50 text-orange-500 dark:bg-orange-950/20 dark:text-orange-400 transition hover:bg-orange-500 hover:text-white dark:hover:bg-orange-500 dark:hover:text-white"
+                  className="flex h-11 w-11 items-center justify-center rounded-full bg-orange-50 text-orange-500 transition hover:bg-orange-500 hover:text-white"
                 >
                   <FaInstagram />
                 </a>

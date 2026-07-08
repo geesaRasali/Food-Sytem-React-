@@ -7,6 +7,21 @@ import { useNavigate } from 'react-router-dom';
 const WEEK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const normalizeStatus = (status = '') => status.toLowerCase().trim();
 
+const MATERIAL_CATEGORIES = [
+  'bakery and grains',
+  'beverages',
+  'dairy and egg',
+  'meat & seafood',
+  'vegetables',
+  'spices',
+  'oils & dressings',
+  'baking & sweeteners',
+  'dairy',
+  'grains',
+  'seafood',
+  'meat & poultry'
+];
+
 const formatMoney = (value) =>
   new Intl.NumberFormat('en-LK', {
     style: 'currency',
@@ -150,10 +165,7 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
     };
   }, [weeklyData, orders]);
 
-  const weeklyChartData = weeklyData.map((day) => ({
-    ...day,
-    expense: Math.round(day.amount * 0.42),
-  }));
+  const weeklyChartData = weeklyData;
 
   const topSellingItems = useMemo(() => {
     const counts = {};
@@ -236,15 +248,9 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
   }, [topSellingItems]);
 
   const totalIncome = weeklyChartData.reduce((sum, day) => sum + day.amount, 0);
-  const totalExpense = weeklyChartData.reduce((sum, day) => sum + day.expense, 0);
   const maxChartValue = Math.max(
-    ...weeklyChartData.flatMap((day) => [day.amount, day.expense]),
+    ...weeklyChartData.map((day) => day.amount),
     1,
-  );
-
-  const peakDay = weeklyChartData.reduce(
-    (best, day) => (day.amount > best.amount ? day : best),
-    weeklyChartData[0] || { day: '-', amount: 0 },
   );
 
   const chartWidth = 700;
@@ -262,14 +268,6 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
     return { ...day, x, y };
   });
 
-  const expensePoints = weeklyChartData.map((day, index) => {
-    const x = chartPaddingX + (chartRangeX / Math.max(weeklyData.length - 1, 1)) * index;
-    const valueRatio = day.expense / maxChartValue;
-    const y = chartPaddingY + chartRangeY - valueRatio * chartRangeY;
-
-    return { ...day, x, y };
-  });
-
   const buildLinePath = (points) =>
     points
       .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
@@ -282,9 +280,7 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
   };
 
   const incomeLinePath = buildLinePath(incomePoints);
-  const expenseLinePath = buildLinePath(expensePoints);
   const incomeAreaPath = buildAreaPath(incomePoints);
-  const expenseAreaPath = buildAreaPath(expensePoints);
 
   const totalStatusCount = summary.foodprocessing + summary.outofdelivery + summary.delivered;
   const foodProcessingPercent = totalStatusCount ? (summary.foodprocessing / totalStatusCount) * 100 : 0;
@@ -320,6 +316,7 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
   const hasInventoryData = foods.some((item) => getStockValue(item) !== null);
   const allLowStockItems = useMemo(() => {
     return foods
+      .filter((item) => item.category && MATERIAL_CATEGORIES.includes(item.category.toLowerCase()))
       .map((item) => ({
         ...item,
         stockValue: getStockValue(item),
@@ -334,23 +331,8 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
   }, [allLowStockItems]);
 
   if (adminUser?.role === 'storekeeper') {
-    const materialCategories = [
-      'bakery and grains',
-      'beverages',
-      'dairy and egg',
-      'meat & seafood',
-      'vegetables',
-      'spices',
-      'oils & dressings',
-      'baking & sweeteners',
-      'dairy',
-      'grains',
-      'seafood',
-      'meat & poultry'
-    ];
-
     const rawMaterials = foods.filter(item => 
-      item.category && materialCategories.includes(item.category.toLowerCase())
+      item.category && MATERIAL_CATEGORIES.includes(item.category.toLowerCase())
     );
 
     const RAW_INGREDIENTS = rawMaterials.length > 0 ? rawMaterials.map((item) => {
@@ -943,7 +925,6 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
               <div className='mb-3 flex items-start justify-between gap-3'>
                 <div>
                   <h3 className='text-lg font-bold text-zinc-900 dark:text-zinc-100'>Revenue</h3>
-                  <p className='text-xs text-zinc-500 dark:text-zinc-400'>Peak day {peakDay.day} reached {formatMoney(peakDay.amount)}</p>
                 </div>
                 <div className='rounded-lg border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300'>
                   Weekly
@@ -956,11 +937,6 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
                   <span className='text-zinc-500 dark:text-zinc-400'>Income</span>
                 </div>
                 <p className='font-bold text-zinc-900 dark:text-zinc-100'>{formatMoney(totalIncome)}</p>
-                <div className='flex items-center gap-2'>
-                  <span className='h-2.5 w-2.5 rounded-sm bg-fuchsia-500' />
-                  <span className='text-zinc-500 dark:text-zinc-400'>Expense</span>
-                </div>
-                <p className='font-bold text-zinc-900 dark:text-zinc-100'>{formatMoney(totalExpense)}</p>
               </div>
 
               <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className='h-52 w-full'>
@@ -968,10 +944,6 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
                   <linearGradient id='incomeFill' x1='0' x2='0' y1='0' y2='1'>
                     <stop offset='0%' stopColor='rgb(59 130 246 / 0.22)' />
                     <stop offset='100%' stopColor='rgb(59 130 246 / 0.03)' />
-                  </linearGradient>
-                  <linearGradient id='expenseFill' x1='0' x2='0' y1='0' y2='1'>
-                    <stop offset='0%' stopColor='rgb(217 70 239 / 0.2)' />
-                    <stop offset='100%' stopColor='rgb(217 70 239 / 0.02)' />
                   </linearGradient>
                 </defs>
 
@@ -988,9 +960,7 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
                 ))}
 
                 <path d={incomeAreaPath} fill='url(#incomeFill)' />
-                <path d={expenseAreaPath} fill='url(#expenseFill)' />
                 <path d={incomeLinePath} fill='none' stroke='rgb(59 130 246)' strokeWidth='3.5' strokeLinejoin='round' strokeLinecap='round' />
-                <path d={expenseLinePath} fill='none' stroke='rgb(217 70 239)' strokeWidth='3.5' strokeLinejoin='round' strokeLinecap='round' />
               </svg>
 
               <div className='mt-1 grid grid-cols-7 gap-1'>

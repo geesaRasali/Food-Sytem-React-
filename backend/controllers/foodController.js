@@ -131,7 +131,8 @@ const addFood = async (req, res) => {
     image: image_filename,
     supplier: req.body.supplier || "",
     quantity: Number(req.body.quantity) || 0,
-    unit: req.body.unit || "units"
+    unit: req.body.unit || "units",
+    expiryDate: req.body.expiryDate || null
   });
 
   try {
@@ -191,6 +192,7 @@ const updateFood = async (req, res) => {
       supplier: req.body.supplier ?? existingFood.supplier,
       quantity: req.body.quantity ?? existingFood.quantity,
       unit: req.body.unit ?? existingFood.unit,
+      expiryDate: req.body.expiryDate ?? existingFood.expiryDate,
     };
 
     if (req.file) {
@@ -228,9 +230,18 @@ const updateFood = async (req, res) => {
 const removeFood = async (req, res) => {
   try {
     const food = await foodModel.findById(req.body.id);
-    fs.unlink(`images/${food.image}`, () => {});
+    if (food) {
+      fs.unlink(`images/${food.image}`, () => {});
+    }
 
     await foodModel.findByIdAndDelete(req.body.id);
+    
+    // Clean up related supply logs from DB
+    await supplyModel.deleteMany({ materialId: req.body.id });
+    
+    // Clean up related kitchen transfer logs from DB
+    await transferModel.deleteMany({ materialId: req.body.id });
+
     res.json({ success: true, message: "Food Removed" });
   } catch (error) {
     console.log(error);
@@ -304,7 +315,9 @@ const addStockQuantity = async (req, res) => {
 // Fetch supply transaction history log
 const listSupplies = async (req, res) => {
   try {
-    const supplies = await supplyModel.find({}).sort({ date: -1 });
+    const activeFoods = await foodModel.find({}, { _id: 1 });
+    const activeFoodIds = activeFoods.map(f => f._id.toString());
+    const supplies = await supplyModel.find({ materialId: { $in: activeFoodIds } }).sort({ date: -1 });
     res.json({ success: true, data: supplies });
   } catch (error) {
     console.log(error);
@@ -359,7 +372,9 @@ const addTransfer = async (req, res) => {
 // List all stock transfers
 const listTransfers = async (req, res) => {
   try {
-    const transfers = await transferModel.find({}).sort({ date: -1 });
+    const activeFoods = await foodModel.find({}, { _id: 1 });
+    const activeFoodIds = activeFoods.map(f => f._id.toString());
+    const transfers = await transferModel.find({ materialId: { $in: activeFoodIds } }).sort({ date: -1 });
     res.json({ success: true, data: transfers });
   } catch (error) {
     console.log(error);

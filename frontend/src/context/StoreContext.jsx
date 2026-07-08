@@ -69,25 +69,63 @@ const StoreContextProvider = (props) => {
   const fetchFoodList = async () => {
     try {
       const response = await axios.get(url + "/api/food/list");
+      const materialCategories = [
+        'bakery and grains',
+        'beverages',
+        'dairy and egg',
+        'meat & seafood',
+        'vegetables',
+        'spices',
+        'oils & dressings',
+        'baking & sweeteners',
+        'dairy',
+        'grains',
+        'seafood',
+        'meat & poultry'
+      ];
+
       if (
         response.data.success &&
         response.data.data &&
         response.data.data.length > 0
       ) {
-        setFoodList(response.data.data);
+        const dishes = response.data.data.filter(
+          (item) => !item.category || !materialCategories.includes(item.category.toLowerCase())
+        );
+        setFoodList(dishes);
         console.log(
           "Loaded food items from backend:",
-          response.data.data.length,
+          dishes.length,
         );
       } else {
         // Backend returned empty data, use static food list
-        setFoodList(food_list);
-        console.log("Using static food list:", food_list.length);
+        const dishes = food_list.filter(
+          (item) => !item.category || !materialCategories.includes(item.category.toLowerCase())
+        );
+        setFoodList(dishes);
+        console.log("Using static food list:", dishes.length);
       }
     } catch (error) {
       console.log("Backend not available, using static food list");
       // Backend failed, use static food list
-      setFoodList(food_list);
+      const materialCategories = [
+        'bakery and grains',
+        'beverages',
+        'dairy and egg',
+        'meat & seafood',
+        'vegetables',
+        'spices',
+        'oils & dressings',
+        'baking & sweeteners',
+        'dairy',
+        'grains',
+        'seafood',
+        'meat & poultry'
+      ];
+      const dishes = food_list.filter(
+        (item) => !item.category || !materialCategories.includes(item.category.toLowerCase())
+      );
+      setFoodList(dishes);
     }
   };
 
