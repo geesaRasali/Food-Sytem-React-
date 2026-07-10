@@ -38,7 +38,8 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
   const [supplies, setSupplies] = useState([]);
   const [transfers, setTransfers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [topSellingView, setTopSellingView] = useState('chart'); // 'chart' or 'list'
+  const [topSellingView, setTopSellingView] = useState('chart'); 
+  const [orderPeriod, setOrderPeriod] = useState('today'); // 'today' | 'weekly' | 'monthly'
   const lowStockThreshold = 5;
 
   const fetchAllOrders = async () => {
@@ -118,22 +119,22 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
     const dayMap = new Map(days.map((day) => [day.key, day]));
 
     orders.forEach((order) => {
-      if (!order?.date) return;
-      const orderDateObj = new Date(order.date);
-      const orderDate = new Date(
-        orderDateObj.getFullYear(),
-        orderDateObj.getMonth(),
-        orderDateObj.getDate(),
-      );
+        if (!order?.date) return;
+        const orderDateObj = new Date(order.date);
+        const orderDate = new Date(
+          orderDateObj.getFullYear(),
+          orderDateObj.getMonth(),
+          orderDateObj.getDate(),
+        );
 
-      const key = `${orderDate.getFullYear()}-${orderDate.getMonth()}-${orderDate.getDate()}`;
-      const dayEntry = dayMap.get(key);
+        const key = `${orderDate.getFullYear()}-${orderDate.getMonth()}-${orderDate.getDate()}`;
+        const dayEntry = dayMap.get(key);
 
-      if (dayEntry) {
-        dayEntry.orders += 1;
-        dayEntry.amount += Number(order.amount || 0);
-      }
-    });
+        if (dayEntry) {
+          dayEntry.orders += 1;
+          dayEntry.amount += Number(order.amount || 0);
+        }
+      });
 
     return days;
   }, [orders]);
@@ -165,7 +166,51 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
     };
   }, [weeklyData, orders]);
 
-  const weeklyChartData = weeklyData;
+  const filteredSummary = useMemo(() => {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekStart = new Date(todayStart);
+    weekStart.setDate(todayStart.getDate() - 6);
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const filtered = orders.filter((order) => {
+      if (!order?.date) return false;
+      const d = new Date(order.date);
+      if (orderPeriod === 'today') return d >= todayStart;
+      if (orderPeriod === 'weekly') return d >= weekStart;
+      if (orderPeriod === 'monthly') return d >= monthStart;
+      return true;
+    });
+
+    const fp = filtered.filter((o) => normalizeStatus(o.status || 'Food Processing') === 'food processing').length;
+    const ood = filtered.filter((o) => normalizeStatus(o.status) === 'out for delivery').length;
+    const del = filtered.filter((o) => normalizeStatus(o.status) === 'delivered').length;
+
+    return { foodprocessing: fp, outofdelivery: ood, delivered: del, total: filtered.length };
+  }, [orders, orderPeriod]);
+
+  const monthlyTimelineData = useMemo(() => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const data = months.map((month) => ({
+      month,
+      revenue: 0,
+      orders: 0
+    }));
+
+    orders
+      .filter((o) => !o.status?.toLowerCase().includes('cancel'))
+      .forEach((o) => {
+        if (!o.date) return;
+        const orderDate = new Date(o.date);
+        const monthIdx = orderDate.getMonth(); // 0 to 11
+        if (monthIdx >= 0 && monthIdx < 12) {
+          data[monthIdx].revenue += Number(o.amount || 0);
+          data[monthIdx].orders += 1;
+        }
+      });
+
+    return data;
+  }, [orders]);
 
   const topSellingItems = useMemo(() => {
     const counts = {};
@@ -247,9 +292,8 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
     });
   }, [topSellingItems]);
 
-  const totalIncome = weeklyChartData.reduce((sum, day) => sum + day.amount, 0);
   const maxChartValue = Math.max(
-    ...weeklyChartData.map((day) => day.amount),
+    ...monthlyTimelineData.map((m) => m.revenue),
     1,
   );
 
@@ -260,12 +304,12 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
   const chartRangeX = chartWidth - chartPaddingX * 2;
   const chartRangeY = chartHeight - chartPaddingY * 2;
 
-  const incomePoints = weeklyChartData.map((day, index) => {
-    const x = chartPaddingX + (chartRangeX / Math.max(weeklyData.length - 1, 1)) * index;
-    const valueRatio = day.amount / maxChartValue;
+  const incomePoints = monthlyTimelineData.map((m, index) => {
+    const x = chartPaddingX + (chartRangeX / Math.max(monthlyTimelineData.length - 1, 1)) * index;
+    const valueRatio = m.revenue / maxChartValue;
     const y = chartPaddingY + chartRangeY - valueRatio * chartRangeY;
 
-    return { ...day, x, y };
+    return { ...m, x, y };
   });
 
   const buildLinePath = (points) =>
@@ -776,12 +820,14 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
   }
 
   const totalRevenue = useMemo(() => {
-    return orders.reduce((sum, order) => sum + Number(order.amount || 0), 0);
+    return orders
+      .filter((o) => !o.status?.toLowerCase().includes('cancel'))
+      .reduce((sum, order) => sum + Number(order.amount || 0), 0);
   }, [orders]);
 
   return (
     <div className='w-full px-4 py-8 md:px-8 animate-fadeIn text-zinc-900 dark:text-zinc-100'>
-      {/* Title Header Section */}
+      
       <div className="mb-8">
         <h1 className="text-4xl font-black text-zinc-950 dark:text-white tracking-tight">
           Welcome, {adminUser?.name || 'Admin'}!
@@ -793,7 +839,7 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
 
       {/* Stats Cards Section */}
       <div className='mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4'>
-        {/* Card 1: Total Orders (Blue) */}
+        {/* Total Orders (Blue) */}
         <div className='relative overflow-hidden rounded-3xl border border-orange-100/70 bg-linear-to-br from-white to-orange-50/10 p-6 shadow-[0_8px_30px_rgba(59,130,246,0.03)] hover:shadow-[0_8px_35px_rgba(59,130,246,0.1)] dark:border-[#1a1722] dark:bg-linear-to-br dark:from-[#121016] dark:to-[#1a1727] dark:shadow-[0_8px_30px_rgb(59,130,246,0.06)] dark:hover:shadow-[0_8px_35px_rgb(59,130,246,0.18)] transition-all duration-300 hover:scale-[1.02] group cursor-pointer'>
           <div className="flex items-center justify-between">
             <div>
@@ -856,19 +902,45 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
               <div className='mb-4 flex items-start justify-between gap-3'>
                 <div>
                   <h3 className='text-lg font-bold text-zinc-900 dark:text-zinc-100'>Orders Summary</h3>
-                  <p className='text-xs text-zinc-500 dark:text-zinc-400'>Last 7 days order activity</p>
+                  <p className='text-xs text-zinc-500 dark:text-zinc-400'>
+                    {orderPeriod === 'today' ? "Today's order activity" : orderPeriod === 'weekly' ? 'Last 7 days order activity' : 'This month\'s order activity'}
+                  </p>
                 </div>
                 <div className='flex items-center gap-1 rounded-lg border border-zinc-200 bg-white p-1 text-xs dark:border-zinc-700 dark:bg-zinc-900'>
-                  <button type='button' className='rounded-md px-2 py-1 text-zinc-500'>Monthly</button>
-                  <button type='button' className='rounded-md px-2 py-1 text-zinc-500'>Weekly</button>
-                  <button type='button' className='rounded-md bg-zinc-900 px-2 py-1 font-semibold text-white dark:bg-zinc-100 dark:text-zinc-900'>Today</button>
+                  <button
+                    type='button'
+                    onClick={() => setOrderPeriod('monthly')}
+                    className={`rounded-md px-2 py-1 font-semibold transition-all ${
+                      orderPeriod === 'monthly'
+                        ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                        : 'text-zinc-500 hover:text-zinc-800'
+                    }`}
+                  >Monthly</button>
+                  <button
+                    type='button'
+                    onClick={() => setOrderPeriod('weekly')}
+                    className={`rounded-md px-2 py-1 font-semibold transition-all ${
+                      orderPeriod === 'weekly'
+                        ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                        : 'text-zinc-500 hover:text-zinc-800'
+                    }`}
+                  >Weekly</button>
+                  <button
+                    type='button'
+                    onClick={() => setOrderPeriod('today')}
+                    className={`rounded-md px-2 py-1 font-semibold transition-all ${
+                      orderPeriod === 'today'
+                        ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                        : 'text-zinc-500 hover:text-zinc-800'
+                    }`}
+                  >Today</button>
                 </div>
               </div>
 
               <div className='mb-4 flex items-center justify-between rounded-xl bg-emerald-50 px-4 py-3 dark:bg-emerald-500/10'>
                 <div className='flex items-center gap-2'>
                   <span className='inline-flex min-w-8 justify-center rounded-md bg-emerald-400 px-2 py-1 text-sm font-bold text-white'>
-                    {summary.foodprocessing}
+                    {filteredSummary.foodprocessing}
                   </span>
                   <p className='text-sm font-semibold text-emerald-800 dark:text-emerald-300'>New Orders</p>
                 </div>
@@ -884,50 +956,64 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
               <div className='rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900'>
                 <div className='grid grid-cols-3 divide-x divide-zinc-200 dark:divide-zinc-700'>
                   <div className='p-5 text-center'>
-                    <p className='text-3xl font-extrabold text-orange-600 dark:text-orange-400'>{summary.foodprocessing}</p>
+                    <p className='text-3xl font-extrabold text-orange-600 dark:text-orange-400'>{filteredSummary.foodprocessing}</p>
                     <p className='mt-1 text-xs font-medium text-zinc-600 dark:text-zinc-400'>Food Processing</p>
                   </div>
                   <div className='p-5 text-center'>
-                    <p className='text-3xl font-extrabold text-emerald-500 dark:text-emerald-400'>{summary.outofdelivery}</p>
+                    <p className='text-3xl font-extrabold text-emerald-500 dark:text-emerald-400'>{filteredSummary.outofdelivery}</p>
                     <p className='mt-1 text-xs font-medium text-zinc-600 dark:text-zinc-400'>Out for Delivery</p>
                   </div>
                   <div className='p-5 text-center'>
-                    <p className='text-3xl font-extrabold text-zinc-700 dark:text-zinc-400'>{summary.delivered}</p>
+                    <p className='text-3xl font-extrabold text-zinc-700 dark:text-zinc-400'>{filteredSummary.delivered}</p>
                     <p className='mt-1 text-xs font-medium text-zinc-600 dark:text-zinc-400'>Delivered</p>
                   </div>
                 </div>
               </div>
 
               <div className='mt-5 grid grid-cols-[112px_minmax(0,1fr)] items-center gap-5'>
-                <div className='relative flex h-24 w-24 items-center justify-center rounded-full' style={{ background: donutTrack }}>
-                  <div className='h-12 w-12 rounded-full bg-white dark:bg-zinc-900' />
-                </div>
-
-                <div className='space-y-3'>
-                  {[
-                    { label: 'Food Processing', value: summary.foodprocessing, color: 'bg-orange-500' },
-                    { label: 'Out for Delivery', value: summary.outofdelivery, color: 'bg-emerald-500' },
-                    { label: 'Delivered', value: summary.delivered, color: 'bg-zinc-700 dark:bg-zinc-400' },
-                  ].map((item) => (
-                    <div key={item.label} className='grid grid-cols-[90px_minmax(0,1fr)_28px] items-center gap-2 text-xs'>
-                      <span className='font-medium text-zinc-600 dark:text-zinc-300'>{item.label}</span>
-                      <div className='h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-700'>
-                        <div className={`h-full rounded-full ${item.color}`} style={{ width: `${(item.value / maxStatusBar) * 100}%` }} />
+                {/* Donut for filtered period */}
+                {(() => {
+                  const fp = filteredSummary.foodprocessing;
+                  const ood = filteredSummary.outofdelivery;
+                  const del = filteredSummary.delivered;
+                  const tot = fp + ood + del;
+                  const fpPct = tot ? (fp / tot) * 100 : 0;
+                  const oodPct = tot ? (ood / tot) * 100 : 0;
+                  const delPct = tot ? (del / tot) * 100 : 0;
+                  const track = tot
+                    ? `conic-gradient(#f97316 0 ${fpPct}%, #10b981 ${fpPct}% ${fpPct + oodPct}%, #52525b ${fpPct + oodPct}% ${fpPct + oodPct + delPct}%)`
+                    : 'conic-gradient(#d4d4d8 0 100%)';
+                  const maxBar = Math.max(tot, 1);
+                  return (
+                    <>
+                      <div className='relative flex h-24 w-24 items-center justify-center rounded-full' style={{ background: track }}>
+                        <div className='h-12 w-12 rounded-full bg-white dark:bg-zinc-900' />
                       </div>
-                      <span className='text-right font-semibold text-zinc-500 dark:text-zinc-400'>{item.value}</span>
-                    </div>
-                  ))}
-                </div>
+                      <div className='space-y-3'>
+                        {[
+                          { label: 'Food Processing', value: fp, color: 'bg-orange-500' },
+                          { label: 'Out for Delivery', value: ood, color: 'bg-emerald-500' },
+                          { label: 'Delivered', value: del, color: 'bg-zinc-700 dark:bg-zinc-400' },
+                        ].map((item) => (
+                          <div key={item.label} className='grid grid-cols-[90px_minmax(0,1fr)_28px] items-center gap-2 text-xs'>
+                            <span className='font-medium text-zinc-600 dark:text-zinc-300'>{item.label}</span>
+                            <div className='h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-700'>
+                              <div className={`h-full rounded-full ${item.color}`} style={{ width: `${(item.value / maxBar) * 100}%` }} />
+                            </div>
+                            <span className='text-right font-semibold text-zinc-500 dark:text-zinc-400'>{item.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </section>
 
             <section className='rounded-2xl border border-zinc-200 bg-zinc-50/80 p-4 dark:border-zinc-700 dark:bg-zinc-800/40'>
               <div className='mb-3 flex items-start justify-between gap-3'>
                 <div>
-                  <h3 className='text-lg font-bold text-zinc-900 dark:text-zinc-100'>Revenue</h3>
-                </div>
-                <div className='rounded-lg border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300'>
-                  Weekly
+                  <h3 className='text-lg font-bold text-zinc-900 dark:text-zinc-100'>Monthly Revenue Trend</h3>
                 </div>
               </div>
 
@@ -963,10 +1049,10 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
                 <path d={incomeLinePath} fill='none' stroke='rgb(59 130 246)' strokeWidth='3.5' strokeLinejoin='round' strokeLinecap='round' />
               </svg>
 
-              <div className='mt-1 grid grid-cols-7 gap-1'>
-                {weeklyChartData.map((day) => (
-                  <div key={day.key} className='text-center'>
-                    <p className='text-[11px] font-semibold text-zinc-500 dark:text-zinc-400'>{day.day}</p>
+              <div className='mt-1 grid grid-cols-12 gap-1'>
+                {monthlyTimelineData.map((d) => (
+                  <div key={d.month} className='text-center'>
+                    <p className='text-[9px] sm:text-[10px] font-semibold text-zinc-500 dark:text-zinc-400'>{d.month}</p>
                   </div>
                 ))}
               </div>

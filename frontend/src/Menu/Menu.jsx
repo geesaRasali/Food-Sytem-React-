@@ -84,6 +84,7 @@ const FoodItem = ({ item, quantity, onAdd, onRemove }) => {
 const Menu = () => {
   const [cartItems, setCartItems] = useState({});
   const [category, setCategory] = useState("All");
+  
 
   const addToCart = (id) => {
     setCartItems((prev) => ({

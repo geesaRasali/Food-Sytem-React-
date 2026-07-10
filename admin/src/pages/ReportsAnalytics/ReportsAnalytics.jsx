@@ -23,7 +23,7 @@ import {
   FiChevronDown 
 } from 'react-icons/fi';
 
-// Helper to format currency
+
 const formatMoney = (value) =>
   new Intl.NumberFormat('en-LK', {
     style: 'currency',
@@ -32,7 +32,6 @@ const formatMoney = (value) =>
   }).format(value || 0);
 
 
-// Map database categories to reports categories
 const materialCategories = [
   'bakery and grains',
   'Beverages',
@@ -44,16 +43,12 @@ const materialCategories = [
   'Baking & Sweeteners'
 ];
 
-const mapCategory = (dbCategory = '') => {
-  const cat = dbCategory.toLowerCase().trim();
-  if (cat.includes('pizza')) return 'Pizza';
-  if (cat.includes('burger') || cat.includes('sandwich')) return 'Burgers';
-  if (cat.includes('rice') || cat.includes('pasta') || cat.includes('noodles') || cat.includes('rolls')) return 'Rice';
-  if (cat.includes('drink') || cat.includes('beverage') || cat.includes('juice')) return 'Drinks';
-  return 'Desserts'; // default fallback mapping (includes cakes, salad, desserts)
-};
+const CATEGORY_COLORS = [
+  '#f97316', '#06b6d4', '#ec4899', '#8b5cf6', '#10b981',
+  '#f59e0b', '#3b82f6', '#ef4444', '#84cc16', '#a855f7'
+];
 
-// SVG Pie Arc Drawer Helper
+
 const polarToCartesian = (centerX, centerY, radius, angleInDegrees) => {
   const angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0;
   return {
@@ -82,20 +77,16 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
   const [messages, setMessages] = useState([]);
   const [supplyLogs, setSupplyLogs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState('Last Month'); // 'Today', 'Last 7 Days', 'Last Month', 'Custom Range'
+  const [dateRange, setDateRange] = useState('All Time');
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
 
-  // Chart hover states
+
   const [hoveredLineIdx, setHoveredLineIdx] = useState(null);
   const [hoveredBarIdx, setHoveredBarIdx] = useState(null);
   const [hoveredPieIdx, setHoveredPieIdx] = useState(null);
-  const [hoveredPaymentIdx, setHoveredPaymentIdx] = useState(null);
-
-  // Custom date range bounds
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
 
-  // Fetch all metrics
   useEffect(() => {
     if (!url) {
       setLoading(false);
@@ -143,7 +134,7 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
     fetchData();
   }, [url, adminToken]);
 
-  // Use actual database values directly without simulated fallbacks
+  
   const activeOrders = useMemo(() => orders, [orders]);
   const activeFoods = useMemo(() => foods, [foods]);
   const activeCustomersCount = customersCount;
@@ -186,9 +177,10 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
     });
 
     const revenue = filteredOrders.filter(o => !o.status?.toLowerCase().includes('cancel')).reduce((sum, o) => sum + Number(o.amount || 0), 0);
-    // Cost of goods sold estimated at 40%, leaving a gross profit of 60%
+   
     const profit = revenue * 0.6;
-    const avgOrderValue = totalOrders > 0 ? (revenue / totalOrders) : 0;
+    const activeOrdersCount = filteredOrders.filter(o => !o.status?.toLowerCase().includes('cancel')).length;
+    const avgOrderValue = activeOrdersCount > 0 ? (revenue / activeOrdersCount) : 0;
 
     return {
       revenue,
@@ -201,6 +193,55 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
       avgOrderValue
     };
   }, [filteredOrders, activeCustomersCount]);
+
+  const prevMetrics = useMemo(() => {
+    const now = new Date();
+    let prevStart, prevEnd;
+
+    if (dateRange === 'Today') {
+      
+      prevStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+      prevEnd   = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    } else if (dateRange === 'Last 7 Days') {
+      prevStart = new Date(now.getTime() - 14 * 86400000);
+      prevEnd   = new Date(now.getTime() - 7  * 86400000);
+    } else if (dateRange === 'Last Month') {
+      prevStart = new Date(now.getFullYear(), now.getMonth() - 2, now.getDate());
+      prevEnd   = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+    } else {
+
+      if (customStartDate && customEndDate) {
+        const s = new Date(customStartDate);
+        const e = new Date(customEndDate);
+        const dur = e - s;
+        prevStart = new Date(s.getTime() - dur);
+        prevEnd   = s;
+      } else {
+        prevStart = new Date(0);
+        prevEnd   = new Date(0);
+      }
+    }
+
+    const prev = activeOrders.filter(o => {
+      const d = new Date(o.date);
+      return d >= prevStart && d < prevEnd;
+    });
+
+    const delivered  = prev.filter(o => o.status?.toLowerCase().trim() === 'delivered').length;
+    const cancelled  = prev.filter(o => o.status?.toLowerCase().trim().includes('cancel')).length;
+    const pending    = prev.filter(o => { const s = o.status?.toLowerCase().trim() || ''; return s !== 'delivered' && !s.includes('cancel'); }).length;
+    const revenue    = prev.filter(o => !o.status?.toLowerCase().includes('cancel')).reduce((sum, o) => sum + Number(o.amount || 0), 0);
+    const avgOrder   = prev.length > 0 ? revenue / prev.length : 0;
+
+    return { ordersCount: prev.length, revenue, deliveredCount: delivered, cancelledCount: cancelled, pendingCount: pending, avgOrderValue: avgOrder };
+  }, [activeOrders, dateRange, customStartDate, customEndDate]);
+
+  // Compute percentage change helper
+  const calcPct = (current, previous) => {
+    if (previous === 0) return current > 0 ? '+100%' : '0%';
+    const change = ((current - previous) / Math.abs(previous)) * 100;
+    return `${change >= 0 ? '+' : ''}${change.toFixed(1)}%`;
+  };
 
   // ---------------- Historical Chart Metrics (Line/Bar) ----------------
   const monthlyTimelineData = useMemo(() => {
@@ -216,8 +257,7 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
     }));
 
     // Populate with real database orders
-    filteredOrders.forEach(o => {
-      if (o.status?.toLowerCase().includes('cancel')) return;
+    filteredOrders.filter(o => !o.status?.toLowerCase().includes('cancel')).forEach(o => {
       const orderDate = new Date(o.date);
       const monthIdx = orderDate.getMonth(); // 0 to 11
       if (monthIdx >= 0 && monthIdx < 12) {
@@ -232,82 +272,52 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
 
   // ---------------- Sales by Category Metrics (Pie Chart 1) ----------------
   const salesByCategory = useMemo(() => {
-    const categoriesCount = {
-      Pizza: 0,
-      Burgers: 0,
-      Rice: 0,
-      Drinks: 0,
-      Desserts: 0
-    };
+    // Build a lookup: food name (lowercase) -> real category from DB
+    const foodCategoryMap = {};
+    activeFoods.forEach(f => {
+      if (f.name && f.category) {
+        foodCategoryMap[f.name.toLowerCase()] = f.category;
+      }
+    });
 
+    // Count quantities by REAL category
+    const counts = {};
     let totalQuantities = 0;
 
-    // Loop orders to collect item names & map categories
-    filteredOrders.forEach(order => {
+    filteredOrders.filter(o => o.status?.toLowerCase().trim() === 'delivered').forEach(order => {
       if (Array.isArray(order.items)) {
         order.items.forEach(item => {
           const qty = Number(item.quantity || 1);
-          // Look up food item to fetch its database category
-          const dbFoodItem = activeFoods.find(f => f.name.toLowerCase() === item.name.toLowerCase());
-          const reportsCat = mapCategory(dbFoodItem?.category || 'Desserts');
-          if (categoriesCount[reportsCat] !== undefined) {
-            categoriesCount[reportsCat] += qty;
-            totalQuantities += qty;
-          }
+          // Get the real category from food DB; fall back to the item name itself
+          const cat = foodCategoryMap[item.name?.toLowerCase()] || item.category || 'Other';
+          counts[cat] = (counts[cat] || 0) + qty;
+          totalQuantities += qty;
         });
       }
     });
 
     if (totalQuantities === 0) {
-      return [
-        { name: 'Pizza', value: 0, qty: 0, color: '#f97316' },
-        { name: 'Burgers', value: 0, qty: 0, color: '#8b5cf6' },
-        { name: 'Rice', value: 0, qty: 0, color: '#06b6d4' },
-        { name: 'Drinks', value: 0, qty: 0, color: '#10b981' },
-        { name: 'Desserts', value: 0, qty: 0, color: '#ec4899' }
-      ];
+      // Show real categories from food DB with 0 quantities
+      const realCats = [...new Set(activeFoods.map(f => f.category).filter(Boolean))];
+      return realCats.slice(0, 10).map((cat, idx) => ({
+        name: cat,
+        value: 0,
+        qty: 0,
+        color: CATEGORY_COLORS[idx % CATEGORY_COLORS.length]
+      }));
     }
 
-    return Object.keys(categoriesCount).map((key, idx) => {
-      const colors = ['#f97316', '#8b5cf6', '#06b6d4', '#10b981', '#ec4899'];
-      const pct = Math.round((categoriesCount[key] / totalQuantities) * 100);
-      return {
-        name: key,
-        value: pct,
-        qty: categoriesCount[key],
-        color: colors[idx]
-      };
-    });
+    return Object.keys(counts)
+      .sort((a, b) => counts[b] - counts[a])
+      .slice(0, 4)
+      .map((cat, idx) => ({
+        name: cat,
+        value: Math.round((counts[cat] / totalQuantities) * 100),
+        qty: counts[cat],
+        color: CATEGORY_COLORS[idx % CATEGORY_COLORS.length]
+      }));
   }, [filteredOrders, activeFoods]);
 
-  // ---------------- Payment Analytics Metrics (Pie Chart 2) ----------------
-  const paymentAnalytics = useMemo(() => {
-    let onlineCount = 0;
-    let offlineCount = 0;
-
-    filteredOrders.forEach(o => {
-      if (o.payment === true) onlineCount++;
-      else offlineCount++;
-    });
-
-    const total = onlineCount + offlineCount;
-    if (total === 0) {
-      return [
-        { name: 'Online (Stripe)', value: 0, color: '#3b82f6' },
-        { name: 'Cash on Delivery (COD)', value: 0, color: '#10b981' }
-      ];
-    }
-
-    const onlinePct = Math.round((onlineCount / total) * 100);
-    const offlinePct = 100 - onlinePct;
-
-    return [
-      { name: 'Online (Stripe)', value: onlinePct, color: '#3b82f6' },
-      { name: 'Cash on Delivery (COD)', value: offlinePct, color: '#10b981' }
-    ];
-  }, [filteredOrders]);
-
-  // ---------------- Kitchen, Delivery, Inventory, Staff widget metrics ----------------
   const kitchenPerformance = useMemo(() => {
     const pendingKitchenOrders = filteredOrders.filter(o => {
       const s = o.status?.toLowerCase() || '';
@@ -319,47 +329,47 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
       return s === 'ready' || s === 'delivered';
     });
     const preparedCount = preparedOrders.length;
-    
-    let totalPrepTime = 0;
-    preparedOrders.forEach(o => {
-      const itemCount = (o.items || []).reduce((sum, item) => sum + Number(item.quantity || 1), 0);
-      totalPrepTime += (10 + itemCount * 2);
-    });
-    
-    const avgTime = preparedCount > 0 ? Math.round(totalPrepTime / preparedCount) : 0;
+
+    const totalItemsPrepared = preparedOrders.reduce((sum, o) =>
+      sum + (o.items || []).reduce((s, item) => s + Number(item.quantity || 1), 0), 0
+    );
 
     return {
       preparedCount,
       pendingKitchenOrders,
-      avgPrepTime: avgTime > 0 ? `${avgTime} mins` : '0 mins'
+      totalItemsPrepared
     };
   }, [filteredOrders]);
 
   const deliveryPerformance = useMemo(() => {
-    const deliveredToday = filteredOrders.filter(o => o.status?.toLowerCase() === 'delivered').length;
+    const deliveredCount = filteredOrders.filter(o => o.status?.toLowerCase() === 'delivered').length;
+    const outForDelivery = filteredOrders.filter(o => o.status?.toLowerCase() === 'out for delivery').length;
+    const totalOrders = filteredOrders.length;
+    const deliveryRate = totalOrders > 0 ? Math.round((deliveredCount / totalOrders) * 100) : 0;
     return {
-      deliveredToday,
-      avgDeliveryTime: deliveredToday > 0 ? '24 mins' : '0 mins',
-      lateDeliveries: 0
+      deliveredToday: deliveredCount,
+      outForDelivery,
+      deliveryRate
     };
   }, [filteredOrders]);
 
   const inventorySummary = useMemo(() => {
-    const rawMaterials = activeFoods.filter(item => materialCategories.includes(item.category));
-    const totalVal = rawMaterials.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 0)), 0);
-    const lowStockCount = rawMaterials.filter(item => Number(item.quantity || 0) <= 5).length;
+    const rawMaterials = activeFoods.filter(item =>
+      item.category && materialCategories.some(cat => cat.toLowerCase() === item.category.toLowerCase())
+    );
+    const totalQty = rawMaterials.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+    const lowStockCount = rawMaterials.filter(item => Number(item.quantity || 0) <= 10).length;
     
-    // Count supplies restocked today
-    const now = new Date();
+    // Count supplies restocked in the last 24 hours
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const todaySupplies = supplyLogs.filter(log => {
+      if (!log.date) return false;
       const logDate = new Date(log.date);
-      return logDate.getFullYear() === now.getFullYear() &&
-             logDate.getMonth() === now.getMonth() &&
-             logDate.getDate() === now.getDate();
+      return logDate >= twentyFourHoursAgo;
     });
 
     return {
-      totalValue: totalVal,
+      totalQuantity: totalQty,
       lowStockItems: lowStockCount,
       restockedToday: todaySupplies.length
     };
@@ -368,7 +378,7 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
   const staffSummary = useMemo(() => {
     const totalStaff = activeStaff.length;
     const activeStaffCount = activeStaff.length; // all registered staff are active
-    const admins = activeStaff.filter(s => s.role === 'admin').length;
+    const admins = activeStaff.filter(s => ['admin', 'management staff', 'storekeeper'].includes(s.role)).length;
     const kitchen = activeStaff.filter(s => s.role === 'kitchen staff').length;
     const delivery = activeStaff.filter(s => s.role === 'delivery staff').length;
     return {
@@ -383,7 +393,7 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
   // ---------------- Best Selling Foods ----------------
   const bestSellingFoods = useMemo(() => {
     const counts = {};
-    filteredOrders.forEach(o => {
+    filteredOrders.filter(o => o.status?.toLowerCase().trim() === 'delivered').forEach(o => {
       if (Array.isArray(o.items)) {
         o.items.forEach(item => {
           if (!counts[item.name]) {
@@ -416,18 +426,20 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
 
   // ---------------- Low Stock Items ----------------
   const lowStockReport = useMemo(() => {
-    const rawMaterials = activeFoods.filter(item => materialCategories.includes(item.category));
+    const rawMaterials = activeFoods.filter(item =>
+      item.category && materialCategories.some(cat => cat.toLowerCase() === item.category.toLowerCase())
+    );
     return rawMaterials
       .map(item => {
         const currentStock = Number(item.quantity || 0);
         return {
           name: item.name,
           currentStock,
-          minStock: 5,
-          status: currentStock <= 3 ? 'Critical' : currentStock <= 5 ? 'Low Stock' : 'In Stock'
+          minStock: 10,
+          status: currentStock === 0 ? 'Out of Stock' : currentStock <= 10 ? 'Low Stock' : 'In Stock'
         };
       })
-      .filter(item => item.currentStock <= 5)
+      .filter(item => item.currentStock <= 10)
       .slice(0, 5);
   }, [activeFoods]);
 
@@ -560,34 +572,6 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
     return table;
   }, [activeOrders]);
 
-  // ---------------- Actions (Export and Print) ----------------
-  const handlePrint = () => {
-    window.print();
-  };
-
-  const handleExportCSV = () => {
-    let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "Date,Orders,Revenue (LKR),Cancelled,Delivered\r\n";
-    
-    ledgerReportTable.forEach(row => {
-      csvContent += `${row.date},${row.orders},${row.revenue},${row.cancelled},${row.delivered}\r\n`;
-    });
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `UFMS_Analytics_Report_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success("CSV report exported successfully!");
-  };
-
-  const handleExportPDF = () => {
-    toast.info("Generating PDF Print View...");
-    window.print();
-  };
-
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto text-zinc-900 dark:text-zinc-100 font-sans print:p-0 print:max-w-full">
       {/* ---------------- TOP SECTION ---------------- */}
@@ -706,13 +690,13 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
           {/* ---------------- SUMMARY CARDS ---------------- */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { title: 'Total Revenue', value: formatMoney(summaryMetrics.revenue), icon: FiDollarSign, pct: '+14.2%', color: 'from-orange-500/10 to-orange-500/5 text-orange-500' },
-              { title: 'Total Orders', value: summaryMetrics.ordersCount, icon: FiShoppingBag, pct: '+8.3%', color: 'from-blue-500/10 to-blue-500/5 text-blue-500' },
-              { title: 'Active Customers', value: summaryMetrics.activeCustomers, icon: FiUsers, pct: '+15.2%', color: 'from-emerald-500/10 to-emerald-500/5 text-emerald-500' },
-              { title: 'Delivered Orders', value: summaryMetrics.deliveredCount, icon: FiCheckCircle, pct: '+9.4%', color: 'from-cyan-500/10 to-cyan-500/5 text-cyan-500' },
-              { title: 'Pending Orders', value: summaryMetrics.pendingCount, icon: FiClock, pct: '-5.1%', color: 'from-amber-500/10 to-amber-500/5 text-amber-500', isNeg: true },
-              { title: 'Cancelled Orders', value: summaryMetrics.cancelledCount, icon: FiXCircle, pct: '-18.3%', color: 'from-red-500/10 to-red-500/5 text-red-500', isNeg: false }, // dropping is positive
-              { title: 'Average Order Value', value: formatMoney(summaryMetrics.avgOrderValue), icon: FiAward, pct: '+4.5%', color: 'from-pink-500/10 to-pink-500/5 text-pink-500' }
+              { title: 'Total Revenue',       value: formatMoney(summaryMetrics.revenue),        icon: FiDollarSign,  pct: calcPct(summaryMetrics.revenue,       prevMetrics.revenue),       isNeg: summaryMetrics.revenue       < prevMetrics.revenue,       color: 'from-orange-500/10 to-orange-500/5 text-orange-500' },
+              { title: 'Total Orders',         value: summaryMetrics.ordersCount,                 icon: FiShoppingBag, pct: calcPct(summaryMetrics.ordersCount,    prevMetrics.ordersCount),   isNeg: summaryMetrics.ordersCount   < prevMetrics.ordersCount,   color: 'from-blue-500/10 to-blue-500/5 text-blue-500' },
+              { title: 'Active Customers',     value: summaryMetrics.activeCustomers,             icon: FiUsers,       pct: calcPct(summaryMetrics.activeCustomers, summaryMetrics.activeCustomers), isNeg: false,                                                color: 'from-emerald-500/10 to-emerald-500/5 text-emerald-500' },
+              { title: 'Delivered Orders',     value: summaryMetrics.deliveredCount,              icon: FiCheckCircle, pct: calcPct(summaryMetrics.deliveredCount,  prevMetrics.deliveredCount),  isNeg: summaryMetrics.deliveredCount  < prevMetrics.deliveredCount,  color: 'from-cyan-500/10 to-cyan-500/5 text-cyan-500' },
+              { title: 'Pending Orders',       value: summaryMetrics.pendingCount,                icon: FiClock,       pct: calcPct(summaryMetrics.pendingCount,    prevMetrics.pendingCount),    isNeg: summaryMetrics.pendingCount    > prevMetrics.pendingCount,    color: 'from-amber-500/10 to-amber-500/5 text-amber-500' },
+              { title: 'Cancelled Orders',     value: summaryMetrics.cancelledCount,              icon: FiXCircle,     pct: calcPct(summaryMetrics.cancelledCount,  prevMetrics.cancelledCount),  isNeg: summaryMetrics.cancelledCount  > prevMetrics.cancelledCount,  color: 'from-red-500/10 to-red-500/5 text-red-500' },
+              { title: 'Total Staff',          value: activeStaff.length,                         icon: FiUserCheck,   pct: activeStaff.length > 0 ? `${activeStaff.length} members` : 'No staff', isNeg: false, color: 'from-violet-500/10 to-violet-500/5 text-violet-500' }
             ].map((card, idx) => {
               const Icon = card.icon;
               return (
@@ -731,12 +715,7 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
                     </div>
                   </div>
                   <h3 className="text-3xl font-black tracking-tight text-zinc-950 dark:text-white mb-2">{card.value}</h3>
-                  <p className="text-sm flex items-center gap-1.5">
-                    <span className={`font-black ${card.isNeg ? 'text-red-550' : 'text-emerald-600'}`}>
-                      {card.pct}
-                    </span>
-                    <span className="text-zinc-400 font-semibold">vs last month</span>
-                  </p>
+
                 </motion.div>
               );
             })}
@@ -963,7 +942,7 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
               </div>
             </div>
 
-            {/* Sales by Category Pie Chart */}
+       
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
               <div className="mb-6">
                 <h3 className="text-lg font-black tracking-tight text-zinc-950 dark:text-white">Sales by Category</h3>
@@ -1059,15 +1038,15 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
                 <div className="space-y-3.5">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-zinc-500 font-semibold">Orders Prepared:</span>
-                    <span className="font-extrabold text-zinc-850 dark:text-zinc-200">{kitchenPerformance.preparedCount} units</span>
+                    <span className="font-extrabold text-zinc-850 dark:text-zinc-200">{kitchenPerformance.preparedCount} orders</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-zinc-500 font-semibold">Pending Queue:</span>
                     <span className="font-extrabold text-zinc-850 dark:text-zinc-200">{kitchenPerformance.pendingKitchenOrders} orders</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-zinc-500 font-semibold">Avg. Prep Duration:</span>
-                    <span className="font-black text-indigo-600 dark:text-indigo-400">{kitchenPerformance.avgPrepTime}</span>
+                    <span className="text-zinc-500 font-semibold">Items Prepared:</span>
+                    <span className="font-black text-indigo-600 dark:text-indigo-400">{kitchenPerformance.totalItemsPrepared} items</span>
                   </div>
                 </div>
               </div>
@@ -1085,23 +1064,23 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
                 </div>
                 <div className="space-y-3.5">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-zinc-500 font-semibold">Delivered Today:</span>
-                    <span className="font-extrabold text-zinc-850 dark:text-zinc-200">{deliveryPerformance.deliveredToday} drops</span>
+                    <span className="text-zinc-500 font-semibold">Delivered:</span>
+                    <span className="font-extrabold text-zinc-850 dark:text-zinc-200">{deliveryPerformance.deliveredToday} orders</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-zinc-500 font-semibold">Avg. Transit Time:</span>
-                    <span className="font-extrabold text-zinc-850 dark:text-zinc-200">{deliveryPerformance.avgDeliveryTime}</span>
+                    <span className="text-zinc-500 font-semibold">Out for Delivery:</span>
+                    <span className="font-extrabold text-zinc-850 dark:text-zinc-200">{deliveryPerformance.outForDelivery} orders</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-zinc-500 font-semibold">Late Deliveries:</span>
-                    <span className={`font-black ${deliveryPerformance.lateDeliveries > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                      {deliveryPerformance.lateDeliveries} alerts
+                    <span className="text-zinc-500 font-semibold">Delivery Rate:</span>
+                    <span className={`font-black ${deliveryPerformance.deliveryRate >= 80 ? 'text-emerald-600' : deliveryPerformance.deliveryRate >= 50 ? 'text-amber-600' : 'text-red-600'}`}>
+                      {deliveryPerformance.deliveryRate}%
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Card 3: Inventory Summary */}
+             
               <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm">
                 <div className="flex items-center gap-3.5 mb-5">
                   <div className="p-3 bg-orange-500/10 rounded-xl text-orange-500 dark:bg-orange-500/15">
@@ -1114,8 +1093,8 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
                 </div>
                 <div className="space-y-3.5">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-zinc-500 font-semibold">Total Stock Value:</span>
-                    <span className="font-black text-orange-600">{formatMoney(inventorySummary.totalValue)}</span>
+                    <span className="text-zinc-500 font-semibold">Stock Item Quantity:</span>
+                    <span className="font-black text-orange-600">{inventorySummary.totalQuantity} units</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-zinc-500 font-semibold">Low Stock Items:</span>
@@ -1127,12 +1106,12 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-zinc-500 font-semibold">Restocked Today:</span>
-                    <span className="font-extrabold text-zinc-850 dark:text-zinc-200">{inventorySummary.restockedToday} orders</span>
+                    <span className="font-extrabold text-zinc-850 dark:text-zinc-200">{inventorySummary.restockedToday} shipments</span>
                   </div>
                 </div>
               </div>
 
-              {/* Card 4: Staff Summary */}
+             
               <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm">
                 <div className="flex items-center gap-3.5 mb-5">
                   <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-500 dark:bg-emerald-500/15">
@@ -1169,7 +1148,7 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
           {/* ---------------- TABLES SECTION ---------------- */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
-            {/* Table 1: Best Selling Foods */}
+            
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
               <div className="mb-5 flex items-center justify-between">
                 <div>
@@ -1219,7 +1198,7 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
               </div>
             </div>
 
-            {/* Table 2: Low Stock Report */}
+            
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
               <div className="mb-5 flex items-center justify-between">
                 <div>
@@ -1269,147 +1248,71 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
 
           </div>
 
-          {/* ---------------- CUSTOMER & PAYMENT ANALYTICS ---------------- */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {/* Customer Analytics Cards */}
-            <div className="lg:col-span-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
-              <div className="mb-6 flex items-center justify-between">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-black tracking-tight text-zinc-950 dark:text-white">Customer Growth &amp; Feedback</h3>
+                <p className="text-xs text-zinc-555 dark:text-zinc-400 mt-0.5">Summary of user acquisitions and messaging ratings</p>
+              </div>
+              <FiUsers className="w-5 h-5 text-indigo-500" />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              <div className="p-4 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-100 dark:border-zinc-850 rounded-2xl flex items-center gap-4">
+                <div className="p-3 bg-indigo-500/10 rounded-xl text-indigo-500">
+                  <FiUsers className="w-6 h-6" />
+                </div>
                 <div>
-                  <h3 className="text-lg font-black tracking-tight text-zinc-950 dark:text-white">Customer Growth &amp; Feedback</h3>
-                  <p className="text-xs text-zinc-555 dark:text-zinc-400 mt-0.5">Summary of user acquisitions and messaging ratings</p>
+                  <span className="text-[10px] text-zinc-400 font-bold uppercase block">Total Customers</span>
+                  <span className="text-lg font-black text-zinc-900 dark:text-white leading-tight">{customerAnalytics.totalCustomers}</span>
+                  <span className="text-[10px] text-emerald-600 font-extrabold block mt-0.5">+{customerAnalytics.newCustomersThisMonth} this month</span>
                 </div>
-                <FiUsers className="w-5 h-5 text-indigo-500" />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="p-4 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-100 dark:border-zinc-850 rounded-2xl flex items-center gap-4">
-                  <div className="p-3 bg-indigo-500/10 rounded-xl text-indigo-500">
-                    <FiUsers className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-zinc-400 font-bold uppercase block">Total Customers</span>
-                    <span className="text-lg font-black text-zinc-900 dark:text-white leading-tight">{customerAnalytics.totalCustomers}</span>
-                    <span className="text-[10px] text-emerald-600 font-extrabold block mt-0.5">+{customerAnalytics.newCustomersThisMonth} this month</span>
-                  </div>
+              <div className="p-4 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-100 dark:border-zinc-855 rounded-2xl flex items-center gap-4">
+                <div className="p-3 bg-amber-500/10 rounded-xl text-amber-500">
+                  <FiAward className="w-6 h-6" />
                 </div>
-
-                <div className="p-4 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-100 dark:border-zinc-855 rounded-2xl flex items-center gap-4">
-                  <div className="p-3 bg-amber-500/10 rounded-xl text-amber-500">
-                    <FiAward className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-zinc-400 font-bold uppercase block">Average Rating</span>
-                    <span className="text-lg font-black text-zinc-900 dark:text-white leading-tight flex items-center gap-1">
-                      {customerAnalytics.averageRating} <span className="text-xs text-zinc-405">/ 5.0</span>
-                    </span>
-                    <span className="text-[10px] text-zinc-400 font-bold block mt-0.5">Based on feedback logs</span>
-                  </div>
+                <div>
+                  <span className="text-[10px] text-zinc-400 font-bold uppercase block">Average Rating</span>
+                  <span className="text-lg font-black text-zinc-900 dark:text-white leading-tight flex items-center gap-1">
+                    {customerAnalytics.averageRating} <span className="text-xs text-zinc-405">/ 5.0</span>
+                  </span>
+                  <span className="text-[10px] text-zinc-400 font-bold block mt-0.5">Based on feedback logs</span>
                 </div>
+              </div>
 
-                <div className="p-4 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-100 dark:border-zinc-855 rounded-2xl flex items-center gap-4">
-                  <div className="p-3 bg-violet-500/10 rounded-xl text-violet-500">
-                    <FiMail className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-zinc-400 font-bold uppercase block">Customer Messages</span>
-                    <span className="text-lg font-black text-zinc-900 dark:text-white leading-tight">{customerAnalytics.totalFeedback} messages</span>
-                    <span className="text-[10px] text-zinc-450 font-semibold block mt-0.5">Customer Messages module</span>
-                  </div>
+              <div className="p-4 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-100 dark:border-zinc-855 rounded-2xl flex items-center gap-4">
+                <div className="p-3 bg-violet-500/10 rounded-xl text-violet-500">
+                  <FiMail className="w-6 h-6" />
                 </div>
+                <div>
+                  <span className="text-[10px] text-zinc-400 font-bold uppercase block">Customer Messages</span>
+                  <span className="text-lg font-black text-zinc-900 dark:text-white leading-tight">{customerAnalytics.totalFeedback} messages</span>
+                  <span className="text-[10px] text-zinc-450 font-semibold block mt-0.5">Customer Messages module</span>
+                </div>
+              </div>
 
-                <div className="p-4 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-100 dark:border-zinc-855 rounded-2xl flex items-center gap-4">
-                  <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-500">
-                    <FiCheckCircle className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-zinc-400 font-bold uppercase block">Satisfaction Index</span>
-                    <span className="text-lg font-black text-zinc-900 dark:text-white leading-tight">96.8%</span>
-                    <span className="text-[10px] text-emerald-600 font-bold block mt-0.5">High positive response</span>
-                  </div>
+              <div className="p-4 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-100 dark:border-zinc-855 rounded-2xl flex items-center gap-4">
+                <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-500">
+                  <FiCheckCircle className="w-6 h-6" />
+                </div>
+                <div>
+                  <span className="text-[10px] text-zinc-400 font-bold uppercase block">Satisfaction Index</span>
+                  <span className="text-lg font-black text-zinc-900 dark:text-white leading-tight">96.8%</span>
+                  <span className="text-[10px] text-emerald-600 font-bold block mt-0.5">High positive response</span>
                 </div>
               </div>
             </div>
-
-            {/* Payment Analytics Pie Chart */}
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
-              <div className="mb-6">
-                <h3 className="text-lg font-black tracking-tight text-zinc-950 dark:text-white">Payment Analytics</h3>
-                <p className="text-xs text-zinc-550 dark:text-zinc-400 mt-0.5">Billing channels utilized during checkouts</p>
-              </div>
-
-              <div className="flex flex-col items-center justify-center gap-6 h-56 relative">
-                
-                {/* SVG Pie Chart */}
-                <div className="relative w-36 h-36">
-                  <svg viewBox="0 0 100 100" className="w-full h-full rotate-[-90deg]">
-                    {(() => {
-                      let accumulatedAngle = 0;
-                      return paymentAnalytics.map((slice, idx) => {
-                        const startAngle = accumulatedAngle;
-                        const angleLength = (slice.value / 100) * 360;
-                        const endAngle = accumulatedAngle + angleLength;
-                        accumulatedAngle = endAngle;
-
-                        const pathD = getPieSlicePath(50, 50, 42, startAngle, endAngle);
-
-                        return (
-                          <path 
-                            key={idx}
-                            d={pathD}
-                            fill={slice.color}
-                            stroke={hoveredPaymentIdx === idx ? '#fff' : 'transparent'}
-                            strokeWidth="1.5"
-                            className="transition-all duration-200 cursor-pointer origin-center hover:scale-[1.03]"
-                            onMouseEnter={() => setHoveredPaymentIdx(idx)}
-                            onMouseLeave={() => setHoveredPaymentIdx(null)}
-                          />
-                        );
-                      });
-                    })()}
-                  </svg>
-                  {/* Inner ring */}
-                  <div className="absolute inset-0 m-auto w-20 h-20 bg-white dark:bg-zinc-900 rounded-full flex flex-col items-center justify-center">
-                    <FiDollarSign className="w-4 h-4 text-emerald-500 mb-0.5" />
-                    <span className="text-[9px] text-zinc-400 font-bold uppercase">Channels</span>
-                  </div>
-                </div>
-
-                {/* Legend list */}
-                <div className="flex justify-center gap-4 w-full text-[10px] font-bold">
-                  {paymentAnalytics.map((slice, idx) => (
-                    <div 
-                      key={idx}
-                      className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all ${
-                        hoveredPaymentIdx === idx ? 'bg-zinc-50 dark:bg-zinc-800/40' : ''
-                      }`}
-                      onMouseEnter={() => setHoveredPaymentIdx(idx)}
-                      onMouseLeave={() => setHoveredPaymentIdx(null)}
-                    >
-                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: slice.color }} />
-                      <span className="text-zinc-550">{slice.name} ({slice.value}%)</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
           </div>
 
-          {/* ---------------- LEDGER REPORT TABLE ---------------- */}
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm overflow-hidden print:border-none print:shadow-none">
             <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h3 className="text-lg font-black tracking-tight text-zinc-950 dark:text-white">Daily Ledger Activity Report</h3>
                 <p className="text-xs text-zinc-550 dark:text-zinc-400 mt-0.5">Historical breakdown of fiscal billing parameters</p>
               </div>
-              <button 
-                onClick={handleExportCSV}
-                className="self-start flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/20 dark:hover:bg-orange-950/30 text-orange-600 dark:text-orange-400 rounded-lg text-xs font-bold transition-all cursor-pointer print:hidden"
-              >
-                <FiDownload className="w-3.5 h-3.5" />
-                <span>Export Ledger CSV</span>
-              </button>
+  
             </div>
 
             <div className="overflow-x-auto">

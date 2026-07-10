@@ -77,8 +77,9 @@ const Orders = ({ url, adminToken, adminUser }) => {
     return 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300';
   };
 
-  const totalRevenue = Orders.reduce((sum, order) => sum + Number(order.amount || 0), 0);
+  const totalRevenue = Orders.filter((order) => !order.status?.toLowerCase().includes('cancel')).reduce((sum, order) => sum + Number(order.amount || 0), 0);
   const deliveredCount = Orders.filter((order) => order.status === 'Delivered').length;
+  const pendingCount = Orders.filter((order) => order.status !== 'Delivered' && !order.status?.toLowerCase().includes('cancel')).length;
 
   const filteredOrders = Orders.filter((order) => {
     const query = searchQuery.toLowerCase().trim();
@@ -118,14 +119,18 @@ const Orders = ({ url, adminToken, adminUser }) => {
               <p className='mt-1 text-sm text-zinc-500 dark:text-zinc-400'>Monitor incoming orders and update delivery progress.</p>
             </div>
 
-            <div className='grid grid-cols-3 gap-2'>
+            <div className='grid grid-cols-2 sm:grid-cols-4 gap-2'>
               <div className='rounded-lg border border-zinc-200 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800'>
                 <p className='text-[10px] uppercase tracking-wide text-zinc-400'>Total</p>
                 <p className='text-base font-black text-zinc-900 dark:text-zinc-100'>{Orders.length}</p>
               </div>
               <div className='rounded-lg border border-zinc-200 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800'>
                 <p className='text-[10px] uppercase tracking-wide text-zinc-400'>Delivered</p>
-                <p className='text-base font-black text-zinc-900 dark:text-zinc-100'>{deliveredCount}</p>
+                <p className='text-base font-black text-emerald-600 dark:text-emerald-400'>{deliveredCount}</p>
+              </div>
+              <div className='rounded-lg border border-zinc-200 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800'>
+                <p className='text-[10px] uppercase tracking-wide text-zinc-400'>Pending</p>
+                <p className='text-base font-black text-amber-600 dark:text-amber-400'>{pendingCount}</p>
               </div>
               <div className='rounded-lg border border-zinc-200 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800'>
                 <p className='text-[10px] uppercase tracking-wide text-zinc-400'>Revenue</p>

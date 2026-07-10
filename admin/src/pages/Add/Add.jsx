@@ -122,7 +122,7 @@ const Add = ({ url, adminToken }) => {
                 <div className='mb-8 flex flex-col md:flex-row md:items-center md:justify-between'>
                     <div>
                         <h1 className='text-3xl font-black tracking-tight text-zinc-900 dark:text-zinc-100'>
-                            Inventory Manager
+                            Menu Management
                         </h1>
                         <p className='text-zinc-500'>Add a new culinary masterpiece to your menu.</p>
                     </div>
