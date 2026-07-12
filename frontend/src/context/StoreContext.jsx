@@ -1,6 +1,6 @@
 import React, { createContext, useEffect, useState } from "react";
 import axios from "axios";
-import { food_list } from "../assets/assets";
+import { food_list, menu_list } from "../assets/assets";
 
 export const StoreContext = createContext(null);
 
@@ -8,7 +8,8 @@ const StoreContextProvider = (props) => {
   const [cartItems, setCartItems] = useState({});
   const [token, setToken] = useState("");
   const [user, setUser] = useState(null);
-  const [foodList, setFoodList] = useState([]); // Start with empty array
+  const [foodList, setFoodList] = useState([]); 
+  const [categories, setCategories] = useState([]);
   const [tokenInitialized, setTokenInitialized] = useState(false);
   const url = "http://localhost:4000";
 
@@ -129,6 +130,55 @@ const StoreContextProvider = (props) => {
     }
   };
 
+  const fetchCategories = async () => {
+   
+    const staticItems = menu_list.map((item) => ({
+      name: item.menu_name,
+     
+      image:
+        typeof item.menu_image === "string"
+          ? item.menu_image
+          : item.menu_image?.src ?? null,
+      _isStatic: true,
+    }));
+
+    try {
+      const response = await axios.get(url + "/api/food/category/list");
+      const backendCats =
+        response.data.success && Array.isArray(response.data.data)
+          ? response.data.data
+          : [];
+
+     
+      const backendMap = {};
+      backendCats.forEach((cat) => {
+        backendMap[cat.name.toLowerCase()] = cat;
+      });
+
+      const merged = staticItems.map((item) => {
+        const match = backendMap[item.name.toLowerCase()];
+        return match && match.image
+          ? { ...item, image: match.image, _id: match._id, _isStatic: false }
+          : item;
+      });
+
+      
+      backendCats.forEach((cat) => {
+        const alreadyPresent = staticItems.some(
+          (s) => s.name.toLowerCase() === cat.name.toLowerCase()
+        );
+        if (!alreadyPresent) {
+          merged.push({ name: cat.name, image: cat.image, _id: cat._id });
+        }
+      });
+
+      setCategories(merged);
+    } catch (error) {
+      console.log("Failed to fetch categories, using static list");
+      setCategories(staticItems);
+    }
+  };
+
   const loadUserProfile = async (authToken) => {
     try {
       const response = await axios.get(url + "/api/user/profile", {
@@ -163,6 +213,7 @@ const StoreContextProvider = (props) => {
   useEffect(() => {
     async function loadData() {
       await fetchFoodList();
+      await fetchCategories();
       const savedToken = localStorage.getItem("token");
       if (savedToken) {
         setToken(savedToken);
@@ -173,7 +224,7 @@ const StoreContextProvider = (props) => {
           await loadUserProfile(savedToken);
         }
       } else {
-        // No token - load cart from localStorage for guest users
+        
         try {
           const savedCart = localStorage.getItem("cartItems");
           if (savedCart) {
@@ -183,14 +234,12 @@ const StoreContextProvider = (props) => {
           console.error("Error loading guest cart:", e);
         }
       }
-      // Mark token as initialized so the token watcher can safely clear cart on logout
+  
       setTokenInitialized(true);
     }
     loadData();
   }, []);
 
-  // Only clear cart when token is explicitly removed (after initialization),
-  // not on the initial render where token starts as ""
   useEffect(() => {
     if (tokenInitialized && !token) {
       setCartItems({});
@@ -200,6 +249,7 @@ const StoreContextProvider = (props) => {
 
   const contextValue = {
     food_list: foodList,
+    categories,
     cartItems,
     setCartItems,
     addToCart,

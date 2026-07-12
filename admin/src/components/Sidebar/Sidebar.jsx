@@ -15,7 +15,6 @@ import {
   FiSettings,
   FiChevronDown,
   FiUserPlus,
-  FiPackage,
   FiRepeat,
   FiUser,
 } from "react-icons/fi";
@@ -29,34 +28,32 @@ const Sidebar = ({ adminUser, pendingMessagesCount = 0 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isKitchenOpen, setIsKitchenOpen] = useState(false);
 
-  // Helper to determine if a kitchen submenu item is active based on pathname and tab search param
+  
   const isKitchenTabActive = (tabName) => {
     if (location.pathname !== "/kitchen-monitoring") return false;
     const currentTab = new URLSearchParams(location.search).get("tab") || "orders";
     return currentTab === tabName;
   };
 
-  // Auto-expand Stock Control if we are on one of its subpages
   useEffect(() => {
     if (location.pathname.startsWith("/stock-control")) {
       setIsStockOpen(true);
     }
   }, [location.pathname]);
 
-  // Auto-expand Menu Management if we are on one of its subpages
   useEffect(() => {
     if (
+      location.pathname === "/categories" ||
       location.pathname === "/add" ||
-      location.pathname === "/list" ||
-      location.pathname === "/categories"
+      location.pathname === "/list" 
+
     ) {
       setIsMenuOpen(true);
     }
   }, [location.pathname]);
 
-  // Auto-expand Kitchen Management if we are on one of its subpages
   useEffect(() => {
-    if (location.pathname.startsWith("/kitchen-monitoring")) {
+    if (location.pathname.startsWith("/kitchen-monitoring") || location.pathname === "/kitchen-stock") {
       setIsKitchenOpen(true);
     }
   }, [location.pathname]);
@@ -78,7 +75,7 @@ const Sidebar = ({ adminUser, pendingMessagesCount = 0 }) => {
 
   return (
     <aside className="fixed top-16 left-0 z-30 h-[calc(100vh-4rem)] w-[18%] bg-white text-zinc-650 border-r border-zinc-200 dark:bg-[#0b090c] dark:text-[#a099b0] dark:border-[#1a1722] flex flex-col justify-between overflow-y-auto select-none font-sans scrollbar-thin scrollbar-thumb-zinc-200 dark:scrollbar-thumb-zinc-800">
-      {/* Logo Header Section */}
+      
       <div className="p-5 flex justify-center items-center border-b border-orange-100 bg-[#fffcf9] dark:border-[#1a1722] dark:bg-[#0e0c12]">
         <img
           src={logo}
@@ -87,7 +84,6 @@ const Sidebar = ({ adminUser, pendingMessagesCount = 0 }) => {
         />
       </div>
 
-      {/* Navigation List */}
       <nav className="flex-1 px-3 py-5 space-y-6">
         
         {(showDashboard || showOrders) && (
@@ -133,7 +129,23 @@ const Sidebar = ({ adminUser, pendingMessagesCount = 0 }) => {
 
                   {isMenuOpen && (
                     <div className="pl-6 space-y-0.5 border-l border-orange-100 dark:border-[#1a1722] ml-5 mt-1 mb-1">
-                      {showAddFood && (
+
+                       {showCategories && (
+                        <NavLink
+                          to="/categories"
+                          className={({ isActive }) =>
+                            `flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                              isActive
+                                ? "bg-orange-50 text-orange-600 dark:bg-[#2a170c] dark:text-orange-400"
+                                : "text-zinc-550 hover:bg-orange-50/65 hover:text-orange-600 dark:text-[#a099b0]/80 dark:hover:bg-[#15121b]/80 dark:hover:text-white"
+                            }`
+                          }
+                        >
+                          <FiGrid className="w-4 h-4 text-orange-500/80 dark:text-orange-400/80" />
+                          <span>Categories</span>
+                        </NavLink>
+                      )}
+                       {showAddFood && (
                         <NavLink
                           to="/add"
                           className={({ isActive }) =>
@@ -148,6 +160,7 @@ const Sidebar = ({ adminUser, pendingMessagesCount = 0 }) => {
                           <span>Add Item</span>
                         </NavLink>
                       )}
+                    
                       {showListFood && (
                         <NavLink
                           to="/list"
@@ -163,21 +176,7 @@ const Sidebar = ({ adminUser, pendingMessagesCount = 0 }) => {
                           <span>Item List</span>
                         </NavLink>
                       )}
-                      {showCategories && (
-                        <NavLink
-                          to="/categories"
-                          className={({ isActive }) =>
-                            `flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                              isActive
-                                ? "bg-orange-50 text-orange-600 dark:bg-[#2a170c] dark:text-orange-400"
-                                : "text-zinc-550 hover:bg-orange-50/65 hover:text-orange-600 dark:text-[#a099b0]/80 dark:hover:bg-[#15121b]/80 dark:hover:text-white"
-                            }`
-                          }
-                        >
-                          <FiGrid className="w-4 h-4 text-orange-500/80 dark:text-orange-400/80" />
-                          <span>Categories</span>
-                        </NavLink>
-                      )}
+                   
                     </div>
                   )}
                 </div>
@@ -354,6 +353,20 @@ const Sidebar = ({ adminUser, pendingMessagesCount = 0 }) => {
                       </NavLink>
 
                       <NavLink
+                        to="/kitchen-stock"
+                        className={({ isActive }) =>
+                          `flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                            isActive
+                              ? "bg-orange-50 text-orange-600 dark:bg-[#2a170c] dark:text-orange-400"
+                              : "text-zinc-550 hover:bg-orange-50/65 hover:text-orange-600 dark:text-[#a099b0]/80 dark:hover:bg-[#15121b]/80 dark:hover:text-white"
+                          }`
+                        }
+                      >
+                        <span className="text-sm">🥫</span>
+                        <span>Kitchen Stock</span>
+                      </NavLink>
+
+                      <NavLink
                         to="/kitchen-monitoring?tab=history"
                         className={() =>
                           `flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
@@ -366,6 +379,7 @@ const Sidebar = ({ adminUser, pendingMessagesCount = 0 }) => {
                         <span className="text-sm">📜</span>
                         <span>Order History</span>
                       </NavLink>
+
                     </div>
                   )}
                 </div>

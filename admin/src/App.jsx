@@ -17,6 +17,7 @@ import Messages from './pages/Messages/Messages';
 import Categories from './pages/Categories/Categories';
 import SupplierManagement from './pages/SupplierManagement/SupplierManagement';
 import KitchenMonitoring from './pages/KitchenMonitoring/KitchenMonitoring';
+import KitchenStock from './pages/KitchenStock/KitchenStock';
 import DeliveryMonitoring from './pages/DeliveryMonitoring/DeliveryMonitoring';
 import ReportsAnalytics from './pages/ReportsAnalytics/ReportsAnalytics';
 import Settings from './pages/Settings/Settings';
@@ -164,10 +165,11 @@ const App = () => {
             <Route path="/" element={canViewDashboard ? <Dashboard url={url} adminToken={adminToken} adminUser={adminUser} /> : <Navigate to={defaultRoute} replace />} />
             <Route path="/add" element={canManageFood ? <Add url={url} adminToken={adminToken} /> : <Navigate to={defaultRoute} replace />} />
             <Route path="/list" element={canListFood ? <List url={url} adminToken={adminToken} /> : <Navigate to={defaultRoute} replace />} />
-            <Route path="/categories" element={canViewCategories ? <Categories /> : <Navigate to={defaultRoute} replace />} />
+            <Route path="/categories" element={canViewCategories ? <Categories url={url} adminToken={adminToken} /> : <Navigate to={defaultRoute} replace />} />
             <Route path="/stock-control/*" element={canViewStockControl ? <StockControl url={url} adminToken={adminToken} /> : <Navigate to={defaultRoute} replace />} />
             <Route path="/supplier-management" element={canViewSupplierManagement ? <SupplierManagement url={url} adminToken={adminToken} /> : <Navigate to={defaultRoute} replace />} />
             <Route path="/kitchen-monitoring" element={canViewKitchenMonitoring ? <KitchenMonitoring url={url} adminToken={adminToken} adminUser={adminUser} /> : <Navigate to={defaultRoute} replace />} />
+            <Route path="/kitchen-stock" element={canViewKitchenMonitoring ? <KitchenStock url={url} adminToken={adminToken} /> : <Navigate to={defaultRoute} replace />} />
             <Route path="/delivery-monitoring" element={canViewDeliveryMonitoring ? <DeliveryMonitoring url={url} adminToken={adminToken} adminUser={adminUser} /> : <Navigate to={defaultRoute} replace />} />
             <Route path="/orders" element={canManageOrders ? <Orders url={url} adminToken={adminToken} adminUser={adminUser} /> : <Navigate to={defaultRoute} replace />} />
             <Route path="/admin/messages" element={canViewMessages ? <Messages url={url} adminToken={adminToken} /> : <Navigate to={defaultRoute} replace />} />

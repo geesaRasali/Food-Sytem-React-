@@ -3,6 +3,22 @@ import axios from 'axios'
 import { toast } from 'react-toastify'
 import { FiPackage, FiSearch, FiTag, FiTrash2, FiEdit } from 'react-icons/fi'
 
+// Categories that belong to Stock Control, not the menu item list
+const MATERIAL_CATEGORIES = new Set([
+  'bakery and grains',
+  'beverages',
+  'dairy and egg',
+  'meat & seafood',
+  'vegetables',
+  'spices',
+  'oils & dressings',
+  'baking & sweeteners',
+  'dairy',
+  'grains',
+  'seafood',
+  'meat & poultry',
+])
+
 const List = ({ url, adminToken }) => {
   const [list, setList] = useState([])
   const [loading, setLoading] = useState(true)
@@ -17,7 +33,11 @@ const List = ({ url, adminToken }) => {
       const response = await axios.get(`${url}/api/food/list`)
 
       if (response.data.success) {
-        setList(response.data.data || [])
+        // Exclude raw-material / stock items — only show actual menu food items
+        const menuItems = (response.data.data || []).filter(
+          (item) => !item.category || !MATERIAL_CATEGORIES.has(item.category.toLowerCase())
+        )
+        setList(menuItems)
       } else {
         toast.error(response.data.message || 'Unable to load items')
       }

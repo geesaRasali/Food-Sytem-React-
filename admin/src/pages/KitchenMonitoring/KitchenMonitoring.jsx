@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -26,7 +26,6 @@ import {
   FiBriefcase
 } from 'react-icons/fi';
 
-// Helper to format currency
 const formatMoney = (value) =>
   new Intl.NumberFormat('en-LK', {
     style: 'currency',
@@ -125,6 +124,15 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
     fetchOrders();
     fetchStaffList();
     fetchFoods();
+  }, [url, adminToken]);
+
+  // Auto-polling: silently refresh kitchen orders every 15 s
+  useEffect(() => {
+    if (!url) return;
+    const pollInterval = setInterval(() => {
+      fetchOrders();
+    }, 15000);
+    return () => clearInterval(pollInterval);
   }, [url, adminToken]);
 
   // High fidelity fallback orders for demonstration

@@ -1,23 +1,28 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { assets } from '../../assets/assets';
 import { normalizeRole, ROLES } from '../../config/rbac';
-import { FiSearch, FiX } from 'react-icons/fi';
+import { FiSearch, FiX, FiRefreshCw } from 'react-icons/fi';
+
+const POLL_INTERVAL_MS = 15000; // 15 seconds
 
 const Orders = ({ url, adminToken, adminUser }) => {
   const [Orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [isPolling, setIsPolling] = useState(false);
+  const pollRef = useRef(null);
   const normalizedRole = normalizeRole(adminUser?.role);
   const isDeliveryStaff = normalizedRole === ROLES.DELIVERY_STAFF;
   const statusOptions = isDeliveryStaff
     ? ['Out for delivery', 'Delivered']
     : ['Order Placed', 'Food Processing', 'Ready for Delivery', 'Out for delivery', 'Delivered'];
 
-  const fetchAllOrders = async () => {
+  const fetchAllOrders = async (silent = false) => {
     try {
-      setIsLoading(true);
+      if (!silent) setIsLoading(true);
       const response = await axios.get(url + '/api/order/list', {
         headers: {
           token: adminToken,
@@ -26,13 +31,14 @@ const Orders = ({ url, adminToken, adminUser }) => {
       });
       if (response.data.success) {
         setOrders(response.data.data || []);
+        setLastUpdated(new Date());
       } else {
-        toast.error('Error fetching orders');
+        if (!silent) toast.error('Error fetching orders');
       }
     } catch (error) {
-      toast.error('Unable to load orders');
+      if (!silent) toast.error('Unable to load orders');
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
@@ -104,9 +110,23 @@ const Orders = ({ url, adminToken, adminUser }) => {
     );
   });
 
+  // Initial load
   useEffect(() => {
     fetchAllOrders();
   }, []);
+
+  // Auto-polling: silently refresh every 15 s to stay in sync with kitchen updates
+  useEffect(() => {
+    if (!url || !adminToken) return;
+    setIsPolling(true);
+    pollRef.current = setInterval(() => {
+      fetchAllOrders(true); // silent = no loading spinner / toast
+    }, POLL_INTERVAL_MS);
+    return () => {
+      clearInterval(pollRef.current);
+      setIsPolling(false);
+    };
+  }, [url, adminToken]);
 
   return (
     <section className='min-h-[calc(100vh-4rem)] bg-zinc-50 px-4 py-6 dark:bg-zinc-900 md:px-7'>
@@ -117,6 +137,27 @@ const Orders = ({ url, adminToken, adminUser }) => {
               <p className='text-xs font-bold uppercase tracking-[0.18em] text-orange-600'>Order Management</p>
               <h3 className='mt-1.5 text-3xl font-black tracking-tight text-zinc-900 dark:text-zinc-100'>Orders</h3>
               <p className='mt-1 text-sm text-zinc-500 dark:text-zinc-400'>Monitor incoming orders and update delivery progress.</p>
+              <div className='mt-2 flex items-center gap-2'>
+                {isPolling && (
+                  <span className='inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400'>
+                    <span className='h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500'></span>
+                    Auto-updating
+                  </span>
+                )}
+                {lastUpdated && (
+                  <span className='text-[11px] text-zinc-400 dark:text-zinc-500'>
+                    Last updated: {lastUpdated.toLocaleTimeString()}
+                  </span>
+                )}
+                <button
+                  type='button'
+                  onClick={() => fetchAllOrders()}
+                  title='Refresh now'
+                  className='ml-1 rounded-lg p-1.5 text-zinc-400 transition hover:bg-zinc-100 hover:text-orange-500 dark:hover:bg-zinc-800'
+                >
+                  <FiRefreshCw className='h-3.5 w-3.5' />
+                </button>
+              </div>
             </div>
 
             <div className='grid grid-cols-2 sm:grid-cols-4 gap-2'>

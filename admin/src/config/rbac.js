@@ -4,7 +4,7 @@ export const ROLES = {
   STOREKEEPER: "storekeeper",
   KITCHEN_STAFF: "kitchen staff",
   DELIVERY_STAFF: "delivery staff",
-  // Legacy value for existing seeded data.
+  
   STAFF: "staff",
 };
 
@@ -36,7 +36,7 @@ export const PERMISSIONS = {
   orders: [ROLES.ADMIN, ROLES.MANAGEMENT_STAFF, ROLES.STAFF],
   messages: [ROLES.ADMIN, ROLES.MANAGEMENT_STAFF],
   staffUsers: [ROLES.ADMIN],
-  reports: [ROLES.ADMIN, ROLES.MANAGEMENT_STAFF],
+  reports: [ROLES.ADMIN],
   settings: [
     ROLES.ADMIN,
     ROLES.MANAGEMENT_STAFF,

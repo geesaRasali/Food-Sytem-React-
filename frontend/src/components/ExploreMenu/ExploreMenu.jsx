@@ -1,8 +1,38 @@
 "use client";
 
-import { menu_list } from "../../assets/assets";
+import { useContext } from "react";
+import { StoreContext } from "../../context/StoreContext";
+
+const BACKEND_URL = "http://localhost:4000";
+
+/**
+ * Resolve an image to a valid <img> src:
+ *  - Full URL (http/https) or Vite asset path (/…)  → use as-is
+ *  - Plain backend filename (no slashes)              → prefix backend URL
+ *  - Falsy                                            → null
+ */
+const getImageSrc = (image) => {
+  if (!image) return null;
+  if (
+    image.startsWith("http") ||
+    image.startsWith("data:") ||
+    image.startsWith("/")
+  ) {
+    return image;
+  }
+  return `${BACKEND_URL}/images/${image}`;
+};
 
 const ExploreMenu = ({ category, setCategory }) => {
+  const { categories } = useContext(StoreContext);
+
+  // StoreContext always provides a merged list:
+  //   static menu_list (original 9) + any admin-added backend categories
+  const menuItems = (categories || []).map((cat) => ({
+    menu_name: cat.name,
+    menu_image: getImageSrc(cat.image),
+  }));
+
   return (
     <section id="explore-menu" className="mb-14 w-full">
       <div className="rounded-[30px] bg-[#f2f4f7] px-6 py-10 sm:px-8 lg:px-10">
@@ -17,12 +47,8 @@ const ExploreMenu = ({ category, setCategory }) => {
           </p>
         </div>
         <div className="grid grid-cols-3 gap-x-1 gap-y-5 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-9 lg:gap-x-1 lg:gap-y-4">
-          {menu_list.map((item) => {
+          {menuItems.map((item) => {
             const isActive = category === item.menu_name;
-            const menuImageSrc =
-              typeof item.menu_image === "string"
-                ? item.menu_image
-                : item.menu_image?.src;
 
             return (
               <button
@@ -44,12 +70,20 @@ const ExploreMenu = ({ category, setCategory }) => {
                   }`}
                 >
                   <div className="rounded-full bg-white p-0.5">
-                    <img
-                      src={menuImageSrc}
-                      alt={item.menu_name}
-                      className="h-22 w-22 rounded-full object-cover sm:h-30 sm:w-30 lg:h-30 lg:w-30"
-                      loading="lazy"
-                    />
+                    {item.menu_image ? (
+                      <img
+                        src={item.menu_image}
+                        alt={item.menu_name}
+                        className="h-22 w-22 rounded-full object-cover sm:h-30 sm:w-30 lg:h-30 lg:w-30"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="h-22 w-22 rounded-full bg-zinc-100 sm:h-30 sm:w-30 flex items-center justify-center">
+                        <span className="text-2xl font-bold text-zinc-300">
+                          {item.menu_name.charAt(0)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -72,4 +106,3 @@ const ExploreMenu = ({ category, setCategory }) => {
 };
 
 export default ExploreMenu;
-  

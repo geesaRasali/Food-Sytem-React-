@@ -284,20 +284,28 @@ const StaffUsers = ({ url, adminToken }) => {
                   </span>
                 </span>
                 <span className='flex gap-2'>
-                  <button
-                    type='button'
-                    onClick={() => onEdit(user)}
-                    className='rounded-full bg-blue-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-blue-700'
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type='button'
-                    onClick={() => onDelete(user.id)}
-                    className='rounded-full bg-red-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-red-700'
-                  >
-                    Delete
-                  </button>
+                  {user.role === 'admin' ? (
+                    <span className='inline-flex items-center gap-1 rounded-full bg-zinc-100 px-3 py-1.5 text-xs font-semibold text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400'>
+                      🔒 Protected
+                    </span>
+                  ) : (
+                    <>
+                      <button
+                        type='button'
+                        onClick={() => onEdit(user)}
+                        className='rounded-full bg-blue-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-blue-700'
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type='button'
+                        onClick={() => onDelete(user.id)}
+                        className='rounded-full bg-red-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-red-700'
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
                 </span>
               </div>
             ))}

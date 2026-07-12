@@ -1,6 +1,7 @@
 import foodModel from "../models/foodModel.js";
 import supplyModel from "../models/supplyModel.js";
 import transferModel from "../models/transferModel.js";
+import categoryModel from "../models/categoryModel.js";
 import fs from "fs";
 import path from "path";
 
@@ -100,18 +101,15 @@ const foodData = [
   }
 ];
 
-// add food item
 
 const addFood = async (req, res) => {
-  console.log("Request body:", req.body); // Debug log
-  console.log("Request file:", req.file); // Debug log
+  console.log("Request body:", req.body); 
+  console.log("Request file:", req.file); 
 
-  // Check if file is uploaded
   if (!req.file) {
     return res.json({ success: false, message: "Image is required" });
   }
 
-  // Check if all required fields are present
   if (
     !req.body.name ||
     !req.body.description ||
@@ -138,7 +136,7 @@ const addFood = async (req, res) => {
   try {
     await food.save();
 
-    // Log initial supply in transactions history if quantity is set
+    // Log initial supply in transactions history
     if (food.quantity > 0 && food.supplier) {
       const supply = new supplyModel({
         materialId: food._id,
@@ -205,7 +203,7 @@ const updateFood = async (req, res) => {
       runValidators: true,
     });
 
-    // Log supply update transaction if quantity has been increased
+    // Log supply update
     const diff = Number(req.body.quantity || 0) - Number(existingFood.quantity || 0);
     if (diff > 0 && updatedFood.supplier) {
       const supply = new supplyModel({
@@ -236,10 +234,10 @@ const removeFood = async (req, res) => {
 
     await foodModel.findByIdAndDelete(req.body.id);
     
-    // Clean up related supply logs from DB
+    // Clean supply logs from DB
     await supplyModel.deleteMany({ materialId: req.body.id });
     
-    // Clean up related kitchen transfer logs from DB
+    // Clean kitchen transfer loging
     await transferModel.deleteMany({ materialId: req.body.id });
 
     res.json({ success: true, message: "Food Removed" });
@@ -249,7 +247,7 @@ const removeFood = async (req, res) => {
   }
 };
 
-// Get all food categories
+// all food categories
 const getFoodCategories = async (req, res) => {
   try {
     res.json({ success: true, data: foodCategories });
@@ -259,7 +257,7 @@ const getFoodCategories = async (req, res) => {
   }
 };
 
-// Get food items by category
+// food items by category
 const getFoodByCategory = async (req, res) => {
   try {
     const { category } = req.params;
@@ -275,7 +273,7 @@ const getFoodByCategory = async (req, res) => {
   }
 };
 
-// Increment stock quantity
+// stock quantity
 const addStockQuantity = async (req, res) => {
   const { id, quantity } = req.body;
   if (!id || quantity === undefined) {
@@ -312,7 +310,7 @@ const addStockQuantity = async (req, res) => {
   }
 };
 
-// Fetch supply transaction history log
+// Fetch supply 
 const listSupplies = async (req, res) => {
   try {
     const activeFoods = await foodModel.find({}, { _id: 1 });
@@ -325,7 +323,7 @@ const listSupplies = async (req, res) => {
   }
 };
 
-// Add kitchen stock transfer
+// 
 const addTransfer = async (req, res) => {
   const { materialId, quantity, recipientSection } = req.body;
   if (!materialId || !quantity || !recipientSection) {
@@ -352,13 +350,14 @@ const addTransfer = async (req, res) => {
     food.quantity = currentStock - qtyToMove;
     await food.save();
 
-    // Create transfer log
     const transfer = new transferModel({
       materialId: food._id,
       materialName: food.name,
+      category: food.category || '',
       quantity: qtyToMove,
       unit: food.unit || "units",
-      recipientSection
+      recipientSection,
+      status: 'Completed'
     });
     await transfer.save();
 
@@ -372,13 +371,134 @@ const addTransfer = async (req, res) => {
 // List all stock transfers
 const listTransfers = async (req, res) => {
   try {
-    const activeFoods = await foodModel.find({}, { _id: 1 });
+    const { status } = req.query;
+    const activeFoods = await foodModel.find({}, { _id: 1, category: 1 });
     const activeFoodIds = activeFoods.map(f => f._id.toString());
-    const transfers = await transferModel.find({ materialId: { $in: activeFoodIds } }).sort({ date: -1 });
-    res.json({ success: true, data: transfers });
+    const foodCategoryMap = {};
+    activeFoods.forEach(f => { foodCategoryMap[f._id.toString()] = f.category; });
+
+    const filter = { materialId: { $in: activeFoodIds } };
+    if (status) filter.status = status;
+
+    const transfers = await transferModel.find(filter).sort({ date: -1 });
+
+    // (old records)
+    const enriched = transfers.map(t => {
+      const obj = t.toObject();
+      if (!obj.category) {
+        obj.category = foodCategoryMap[obj.materialId?.toString()] || '';
+      }
+      if (!obj.status) {
+        obj.status = 'Completed';
+      }
+      return obj;
+    });
+
+    res.json({ success: true, data: enriched });
   } catch (error) {
     console.log(error);
     res.json({ success: false, message: "Error fetching transfers history" });
+  }
+};
+
+/** Add a new category*/
+const addCategory = async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name || !name.trim()) {
+      if (req.file) fs.unlink(`images/${req.file.filename}`, () => {});
+      return res.json({ success: false, message: "Category name is required" });
+    }
+
+    const existing = await categoryModel.findOne({
+      name: { $regex: new RegExp(`^${name.trim()}$`, "i") },
+    });
+    if (existing) {
+      if (req.file) fs.unlink(`images/${req.file.filename}`, () => {});
+      return res.json({ success: false, message: "Category already exists" });
+    }
+
+    const category = new categoryModel({
+      name: name.trim(),
+      image: req.file ? req.file.filename : "",
+    });
+    await category.save();
+    res.json({ success: true, message: "Category added", data: category });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: "Error adding category" });
+  }
+};
+
+/** List all categories */
+const listCategories = async (req, res) => {
+  try {
+    const categories = await categoryModel.find({}).sort({ createdAt: 1 });
+    res.json({ success: true, data: categories });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: "Error fetching categories" });
+  }
+};
+
+/** Update a category name and/or image */
+const updateCategory = async (req, res) => {
+  try {
+    const { id, name } = req.body;
+    if (!id) {
+      if (req.file) fs.unlink(`images/${req.file.filename}`, () => {});
+      return res.json({ success: false, message: "Category id is required" });
+    }
+
+    const category = await categoryModel.findById(id);
+    if (!category) {
+      if (req.file) fs.unlink(`images/${req.file.filename}`, () => {});
+      return res.json({ success: false, message: "Category not found" });
+    }
+
+    if (name && name.trim()) {
+      // Check uniqueness 
+      const duplicate = await categoryModel.findOne({
+        _id: { $ne: id },
+        name: { $regex: new RegExp(`^${name.trim()}$`, "i") },
+      });
+      if (duplicate) {
+        if (req.file) fs.unlink(`images/${req.file.filename}`, () => {});
+        return res.json({ success: false, message: "Category name already exists" });
+      }
+      category.name = name.trim();
+    }
+
+    if (req.file) {
+      // Delete old image 
+      if (category.image) fs.unlink(`images/${category.image}`, () => {});
+      category.image = req.file.filename;
+    }
+
+    await category.save();
+    res.json({ success: true, message: "Category updated", data: category });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: "Error updating category" });
+  }
+};
+
+/** Delete a category and its image */
+const deleteCategory = async (req, res) => {
+  try {
+    const { id } = req.body;
+    if (!id) return res.json({ success: false, message: "Category id is required" });
+
+    const category = await categoryModel.findById(id);
+    if (!category) return res.json({ success: false, message: "Category not found" });
+
+    if (category.image) fs.unlink(`images/${category.image}`, () => {});
+    await categoryModel.findByIdAndDelete(id);
+
+    res.json({ success: true, message: "Category deleted" });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: "Error deleting category" });
   }
 };
 
@@ -392,5 +512,9 @@ export {
   addStockQuantity, 
   listSupplies,
   addTransfer,
-  listTransfers
+  listTransfers,
+  addCategory,
+  listCategories,
+  updateCategory,
+  deleteCategory,
 };
