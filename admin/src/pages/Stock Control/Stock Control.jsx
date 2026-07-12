@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Route, Routes, useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { FiPackage, FiPlusCircle, FiRepeat, FiList, FiTruck, FiUserPlus, FiArrowLeft, FiPlus, FiSearch, FiEdit2, FiTrash2 } from 'react-icons/fi'
 import axios from 'axios'
 import { toast } from 'react-toastify'
@@ -609,18 +609,28 @@ const SupplyHistory = ({ url, adminToken }) => {
   )
 }
 
-// 6. Main Component Router
+// 6. Main Component — uses location-based rendering (avoids nested Routes matching issues)
 const StockControl = ({ url, adminToken }) => {
-  return (
-    <Routes>
-      <Route path="/" element={<StockControlGrid />} />
-      <Route path="/add-supplier" element={<SupplierManagement url={url} adminToken={adminToken} />} />
-      <Route path="/stock-list" element={<StockList url={url} adminToken={adminToken} />} />
-      <Route path="/kitchen-transfer-list" element={<KitchenTransferList url={url} adminToken={adminToken} />} />
-      <Route path="/add-material" element={<AddMaterial url={url} adminToken={adminToken} />} />
-      <Route path="/supply-history" element={<SupplyHistory url={url} adminToken={adminToken} />} />
-    </Routes>
-  )
+  const location = useLocation()
+  const subPath = location.pathname.replace(/^\/stock-control\/?/, '') // e.g. 'stock-list'
+
+  if (subPath === 'add-supplier') {
+    return <SupplierManagement url={url} adminToken={adminToken} />
+  }
+  if (subPath === 'stock-list') {
+    return <StockList url={url} adminToken={adminToken} />
+  }
+  if (subPath === 'kitchen-transfer-list') {
+    return <KitchenTransferList url={url} adminToken={adminToken} />
+  }
+  if (subPath === 'add-material') {
+    return <AddMaterial url={url} adminToken={adminToken} />
+  }
+  if (subPath === 'supply-history') {
+    return <SupplyHistory url={url} adminToken={adminToken} />
+  }
+  // Default: show the grid portal
+  return <StockControlGrid />
 }
 
 export default StockControl

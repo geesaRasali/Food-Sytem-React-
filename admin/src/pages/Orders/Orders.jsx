@@ -3,16 +3,15 @@ import { toast } from "react-toastify";
 import axios from "axios";
 import { assets } from "../../assets/assets";
 import { normalizeRole, ROLES } from "../../config/rbac";
-import { FiSearch, FiX, FiRefreshCw } from "react-icons/fi";
-import { createOrderEventSource } from "../../lib/orderRealtime";
+import { FiSearch, FiX } from "react-icons/fi";
+
+const POLL_INTERVAL_MS = 15000;
 
 const Orders = ({ url, adminToken, adminUser }) => {
   const [Orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [lastUpdated, setLastUpdated] = useState(null);
-  const [isPolling, setIsPolling] = useState(false);
-  const streamRef = useRef(null);
+  const pollRef = useRef(null);
   const normalizedRole = normalizeRole(adminUser?.role);
   const isDeliveryStaff = normalizedRole === ROLES.DELIVERY_STAFF;
   const statusOptions = isDeliveryStaff
@@ -133,26 +132,13 @@ const Orders = ({ url, adminToken, adminUser }) => {
     fetchAllOrders();
   }, []);
 
+  // Auto-polling: silently refresh every 15 s to stay in sync with kitchen updates
   useEffect(() => {
     if (!url || !adminToken) return;
-    setIsPolling(true);
-    streamRef.current = createOrderEventSource(
-      url,
-      adminToken,
-      (updatedOrder) => {
-        setOrders((prev) =>
-          prev.map((order) =>
-            order._id === updatedOrder._id ? updatedOrder : order,
-          ),
-        );
-        setLastUpdated(new Date());
-      },
-    );
-    return () => {
-      streamRef.current?.close?.();
-      streamRef.current = null;
-      setIsPolling(false);
-    };
+    pollRef.current = setInterval(() => {
+      fetchAllOrders(true);
+    }, POLL_INTERVAL_MS);
+    return () => clearInterval(pollRef.current);
   }, [url, adminToken]);
 
   return (
@@ -170,27 +156,7 @@ const Orders = ({ url, adminToken, adminUser }) => {
               <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
                 Monitor incoming orders and update delivery progress.
               </p>
-              <div className="mt-2 flex items-center gap-2">
-                {isPolling && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
-                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500"></span>
-                    Auto-updating
-                  </span>
-                )}
-                {lastUpdated && (
-                  <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
-                    Last updated: {lastUpdated.toLocaleTimeString()}
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => fetchAllOrders()}
-                  title="Refresh now"
-                  className="ml-1 rounded-lg p-1.5 text-zinc-400 transition hover:bg-zinc-100 hover:text-orange-500 dark:hover:bg-zinc-800"
-                >
-                  <FiRefreshCw className="h-3.5 w-3.5" />
-                </button>
-              </div>
+
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">

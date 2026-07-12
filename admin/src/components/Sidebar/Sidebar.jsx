@@ -17,6 +17,7 @@ import {
   FiUserPlus,
   FiRepeat,
   FiUser,
+  FiPackage,
 } from "react-icons/fi";
 import { hasPermission } from "../../config/rbac";
 import logo from "../../assets/logo.png";

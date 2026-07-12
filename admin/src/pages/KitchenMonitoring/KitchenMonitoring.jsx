@@ -194,7 +194,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
       {
         _id: "ord-1024",
         amount: 8000,
-        status: "Preparing",
+        status: "Food Processing",
         kitchenStaff: "Kamal Bandara",
         date: new Date(Date.now() - 600000).toISOString(), // 10m ago
         payment: true,
@@ -273,7 +273,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
     ) {
       return "Ready for Pickup";
     }
-    if (s === "preparing") {
+    if (s === "food processing") {
       return "In Progress";
     }
     return "Pending"; // Default fallback ('Food Processing', 'Placed', etc.)
@@ -397,7 +397,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
       let status = staffStatuses[staff.name || staff.username];
       if (!status) {
         if (activeCount > 0) {
-          status = "Preparing";
+          status = "Food Processing";
         } else if (
           staff.name === "Nimal Perera" ||
           staff.username === "nimal_prep"
@@ -472,7 +472,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
       if (newStatus) {
         const orderShortId = orderId?.substring(0, 8) || orderId;
         const eventText =
-          newStatus === "Preparing"
+          newStatus === "Food Processing"
             ? `Started preparing items for Order #${orderShortId}`
             : `Order #${orderShortId} marked as Ready for Delivery`;
 
@@ -1025,7 +1025,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
                     {staffWorkload.map((staff) => {
                       const getStatusBadge = (status) => {
                         const s = status?.toLowerCase() || "";
-                        if (s === "preparing") {
+                        if (s === "food processing") {
                           return "bg-amber-50 text-amber-600 dark:bg-amber-950/20 dark:text-amber-400";
                         }
                         if (s === "available") {
@@ -1071,7 +1071,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
                                 Available
                               </option>
                               <option
-                                value="Preparing"
+                                value="Food Processing"
                                 className="bg-white text-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
                               >
                                 Preparing
@@ -1381,7 +1381,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
                                       onClick={() =>
                                         updateOrderStatus(
                                           order._id,
-                                          "Preparing",
+                                          "Food Processing",
                                           adminUser.name || adminUser.username,
                                         )
                                       }
@@ -1411,7 +1411,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
                                           onClick={() =>
                                             updateOrderStatus(
                                               order._id,
-                                              "Preparing",
+                                              "Food Processing",
                                             )
                                           }
                                           className="px-3.5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-extrabold shadow-xs transition active:scale-95 cursor-pointer flex items-center gap-1"
@@ -1462,7 +1462,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
                                       onClick={() =>
                                         updateOrderStatus(
                                           order._id,
-                                          "Preparing",
+                                          "Food Processing",
                                         )
                                       }
                                       className="px-3.5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-extrabold shadow-xs transition active:scale-95 cursor-pointer flex items-center gap-1"
@@ -1583,7 +1583,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
                                 onClick={() =>
                                   updateOrderStatus(
                                     selectedOrder._id,
-                                    "Preparing",
+                                    "Food Processing",
                                     adminUser.name || adminUser.username,
                                   )
                                 }
@@ -1685,7 +1685,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
                               onClick={() =>
                                 updateOrderStatus(
                                   selectedOrder._id,
-                                  "Preparing",
+                                  "Food Processing",
                                 )
                               }
                               className="w-full flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-3 text-xs font-bold text-white shadow-xs hover:bg-orange-600 transition active:scale-95 cursor-pointer"
