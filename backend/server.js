@@ -10,6 +10,8 @@ import chatRouter from "./routes/chatRoute.js";
 import contactRouter from "./routes/contactRoute.js";
 import supplierRouter from "./routes/supplierRoute.js";
 import { ensureInitialAdminUser } from "./utils/ensureAdminUser.js";
+import { registerOrderClient } from "./utils/orderRealtime.js";
+import authMiddleware from "./middleware/auth.js";
 
 //app config
 const app = express();
@@ -31,6 +33,15 @@ app.use("/api/supplier", supplierRouter);
 
 app.get("/", (req, res) => {
   res.send("API Working");
+});
+
+app.get("/api/order/stream", authMiddleware, (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders?.();
+
+  registerOrderClient(res);
 });
 
 const startServer = async () => {

@@ -3,6 +3,7 @@ import userModel from "../models/userModel.js";
 import Stripe from "stripe";
 import { DELIVERY_ALLOWED_STATUSES, USER_ROLES } from "../constants/roles.js";
 import { sendOrderSuccessEmail } from "../utils/loginEmail.js";
+import { emitOrderUpdate } from "../utils/orderRealtime.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -19,7 +20,10 @@ const placeOrder = async (req, res) => {
     const userId = req.userId || req.user?.id;
 
     if (!userId) {
-      return res.json({ success: false, message: "Not Authorized Login Again" });
+      return res.json({
+        success: false,
+        message: "Not Authorized Login Again",
+      });
     }
 
     const newOrder = new orderModel({
@@ -38,7 +42,12 @@ const placeOrder = async (req, res) => {
     );
     const freeDeliveryThreshold = 15000;
     const deliveryFeeAmount = 400;
-    const deliveryFee = subtotal === 0 ? 0 : subtotal > freeDeliveryThreshold ? 0 : deliveryFeeAmount;
+    const deliveryFee =
+      subtotal === 0
+        ? 0
+        : subtotal > freeDeliveryThreshold
+          ? 0
+          : deliveryFeeAmount;
 
     const line_items = req.body.items.map((item) => ({
       price_data: {
@@ -99,8 +108,11 @@ const verifyOrder = async (req, res) => {
       let emailStatus = "skipped";
       if (!alreadyPaid) {
         try {
-          const customer = await userModel.findById(order.userId).select("name email");
-          const customerName = customer?.name || order.address?.firstName || "Customer";
+          const customer = await userModel
+            .findById(order.userId)
+            .select("name email");
+          const customerName =
+            customer?.name || order.address?.firstName || "Customer";
           const customerEmail = customer?.email || order.address?.email || "";
 
           await sendOrderSuccessEmail({
@@ -112,14 +124,21 @@ const verifyOrder = async (req, res) => {
           emailStatus = "sent";
         } catch (emailError) {
           emailStatus = `error: ${emailError?.message || emailError}`;
-          console.error("Failed to send order success email:", emailError?.message || emailError);
+          console.error(
+            "Failed to send order success email:",
+            emailError?.message || emailError,
+          );
         }
       }
 
       res.json({ success: true, message: "paid", emailStatus });
     } else {
       await orderModel.findByIdAndDelete(orderId);
-      res.json({ success: false, message: "Not Paid", emailStatus: "not-sent" });
+      res.json({
+        success: false,
+        message: "Not Paid",
+        emailStatus: "not-sent",
+      });
     }
   } catch (error) {
     console.log(error);
@@ -128,22 +147,22 @@ const verifyOrder = async (req, res) => {
 };
 
 //user orders for frontend
-const userOrders = async (req,res) => {
-   try {  
-      // Get userId from req.body (set by authMiddleware)
-  const userId = req.userId || req.body.userId;
-      
-      if (!userId) {
-        return res.json({success: false, message: "User ID not found"});
-      }
-      
-      const orders = await orderModel.find({userId: userId});
-      res.json({success: true, data: orders})
-    } catch (error) {
-      console.log(error)
-      res.json({success: false, message: "Error"})
-   }
-}
+const userOrders = async (req, res) => {
+  try {
+    // Get userId from req.body (set by authMiddleware)
+    const userId = req.userId || req.body.userId;
+
+    if (!userId) {
+      return res.json({ success: false, message: "User ID not found" });
+    }
+
+    const orders = await orderModel.find({ userId: userId });
+    res.json({ success: true, data: orders });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: "Error" });
+  }
+};
 
 // List orders for admin panel
 const listOrders = async (req, res) => {
@@ -166,10 +185,18 @@ const updateStatus = async (req, res) => {
     }
 
     const role = req.user?.role;
-    const normalizedRole = role === USER_ROLES.STAFF ? USER_ROLES.MANAGEMENT_STAFF : role;
+    const normalizedRole =
+      role === USER_ROLES.STAFF ? USER_ROLES.MANAGEMENT_STAFF : role;
 
-    if (status && normalizedRole === USER_ROLES.DELIVERY_STAFF && !DELIVERY_ALLOWED_STATUSES.includes(status)) {
-      return res.json({ success: false, message: "Delivery staff can only set Out for delivery or Delivered" });
+    if (
+      status &&
+      normalizedRole === USER_ROLES.DELIVERY_STAFF &&
+      !DELIVERY_ALLOWED_STATUSES.includes(status)
+    ) {
+      return res.json({
+        success: false,
+        message: "Delivery staff can only set Out for delivery or Delivered",
+      });
     }
 
     const updateObj = {};
@@ -178,10 +205,23 @@ const updateStatus = async (req, res) => {
     if (deliveryStaff !== undefined) updateObj.deliveryStaff = deliveryStaff;
 
     if (Object.keys(updateObj).length === 0) {
-      return res.json({ success: false, message: "Either status, kitchenStaff, or deliveryStaff is required to update" });
+      return res.json({
+        success: false,
+        message:
+          "Either status, kitchenStaff, or deliveryStaff is required to update",
+      });
     }
 
-    await orderModel.findByIdAndUpdate(orderId, updateObj);
+    const updatedOrder = await orderModel.findByIdAndUpdate(
+      orderId,
+      updateObj,
+      { new: true },
+    );
+
+    if (updatedOrder) {
+      emitOrderUpdate(updatedOrder.toObject());
+    }
+
     res.json({ success: true, message: "Status Updated" });
   } catch (error) {
     console.log(error);
@@ -211,4 +251,11 @@ const getSingleOrder = async (req, res) => {
   }
 };
 
-export { placeOrder, verifyOrder, userOrders, listOrders, updateStatus, getSingleOrder };
+export {
+  placeOrder,
+  verifyOrder,
+  userOrders,
+  listOrders,
+  updateStatus,
+  getSingleOrder,
+};

@@ -2,7 +2,8 @@ import jwt from "jsonwebtoken";
 import userModel from "../models/userModel.js";
 
 const authMiddleware = async (req, res, next) => {
-  const authHeader = req.headers.token || req.headers.authorization;
+  const authHeader =
+    req.headers.token || req.headers.authorization || req.query?.token;
   const token = authHeader?.startsWith("Bearer ")
     ? authHeader.slice(7).trim()
     : authHeader;
@@ -13,10 +14,15 @@ const authMiddleware = async (req, res, next) => {
 
   try {
     const token_decode = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await userModel.findById(token_decode.id).select("_id role name email username");
+    const user = await userModel
+      .findById(token_decode.id)
+      .select("_id role name email username");
 
     if (!user) {
-      return res.json({ success: false, message: "User not found, please login again" });
+      return res.json({
+        success: false,
+        message: "User not found, please login again",
+      });
     }
 
     req.body = req.body || {};
