@@ -156,7 +156,7 @@ const userOrders = async (req, res) => {
       return res.json({ success: false, message: "User ID not found" });
     }
 
-    const orders = await orderModel.find({ userId: userId });
+    const orders = await orderModel.find({ userId: userId }).sort({ date: -1 });
     res.json({ success: true, data: orders });
   } catch (error) {
     console.log(error);
@@ -167,7 +167,7 @@ const userOrders = async (req, res) => {
 // List orders for admin panel
 const listOrders = async (req, res) => {
   try {
-    const orders = await orderModel.find({});
+    const orders = await orderModel.find({}).sort({ date: -1 });
     res.json({ success: true, data: orders });
   } catch (error) {
     console.log(error);

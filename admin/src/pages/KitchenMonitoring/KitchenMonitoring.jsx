@@ -27,6 +27,9 @@ import {
   FiBriefcase,
 } from "react-icons/fi";
 
+const KITCHEN_ORDERS_PER_PAGE = 5;
+const HISTORY_ORDERS_PER_PAGE = 7;
+
 const formatMoney = (value) =>
   new Intl.NumberFormat("en-LK", {
     style: "currency",
@@ -44,11 +47,13 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All"); // 'All', 'Queued', 'Preparing', 'Ready'
+  const [currentOrdersPage, setCurrentOrdersPage] = useState(1);
+  const [currentHistoryPage, setCurrentHistoryPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [staffList, setStaffList] = useState([]);
   const [kitchenStaffTab, setKitchenStaffTab] = useState(
     isKitchenStaffUser ? "My Orders" : "All",
-  ); // 'My Orders', 'Unassigned', 'All'
+  ); 
   const [foods, setFoods] = useState([]);
   const [staffStatuses, setStaffStatuses] = useState({});
   const [activeAlertTab, setActiveAlertTab] = useState("alerts"); // 'alerts' or 'timeline'
@@ -323,6 +328,11 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
         return (
           s !== "delivered" && !s.includes("cancel") && s !== "order placed"
         );
+      })
+      .sort((a, b) => {
+        const dateA = a.date ? new Date(a.date) : new Date(0);
+        const dateB = b.date ? new Date(b.date) : new Date(0);
+        return dateB - dateA;
       });
   }, [activeOrders]);
 
@@ -357,8 +367,36 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
           s === "ready for delivery" ||
           s === "out for delivery"
         );
+      })
+      .sort((a, b) => {
+        const dateA = a.date ? new Date(a.date) : new Date(0);
+        const dateB = b.date ? new Date(b.date) : new Date(0);
+        return dateB - dateA;
       });
   }, [activeOrders]);
+
+  const filteredHistoryOrders = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim();
+    return completedOrders.filter((order) => {
+      return (
+        !query ||
+        order._id?.toLowerCase().includes(query) ||
+        `${order.address?.firstName || ""} ${order.address?.lastName || ""}`
+          .toLowerCase()
+          .includes(query)
+      );
+    });
+  }, [completedOrders, searchQuery]);
+
+  const totalHistoryPages = Math.max(
+    1,
+    Math.ceil(filteredHistoryOrders.length / HISTORY_ORDERS_PER_PAGE),
+  );
+
+  const paginatedHistoryOrders = useMemo(() => {
+    const start = (currentHistoryPage - 1) * HISTORY_ORDERS_PER_PAGE;
+    return filteredHistoryOrders.slice(start, start + HISTORY_ORDERS_PER_PAGE);
+  }, [filteredHistoryOrders, currentHistoryPage]);
 
   // Fallback kitchen staff list when backend database list is empty
   const effectiveStaffList = useMemo(() => {
@@ -538,6 +576,38 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
     isKitchenStaffUser,
     adminUser,
   ]);
+
+  const totalKitchenOrdersPages = Math.max(
+    1,
+    Math.ceil(filteredQueue.length / KITCHEN_ORDERS_PER_PAGE),
+  );
+
+  const paginatedQueue = useMemo(() => {
+    const start = (currentOrdersPage - 1) * KITCHEN_ORDERS_PER_PAGE;
+    return filteredQueue.slice(start, start + KITCHEN_ORDERS_PER_PAGE);
+  }, [filteredQueue, currentOrdersPage]);
+
+  useEffect(() => {
+    setCurrentOrdersPage(1);
+  }, [searchQuery, statusFilter, kitchenStaffTab, activeTab]);
+
+  useEffect(() => {
+    if (currentOrdersPage > totalKitchenOrdersPages) {
+      setCurrentOrdersPage(totalKitchenOrdersPages);
+    }
+  }, [currentOrdersPage, totalKitchenOrdersPages]);
+
+  useEffect(() => {
+    if (activeTab === "history") {
+      setCurrentHistoryPage(1);
+    }
+  }, [activeTab, searchQuery]);
+
+  useEffect(() => {
+    if (currentHistoryPage > totalHistoryPages) {
+      setCurrentHistoryPage(totalHistoryPages);
+    }
+  }, [currentHistoryPage, totalHistoryPages]);
 
   // Summary Metrics calculations
   const summaryMetrics = useMemo(() => {
@@ -773,31 +843,27 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
 
   return (
     <div className="p-6 md:p-8 w-full text-zinc-900 dark:text-zinc-100 font-sans">
-      {/* ---------------- HEADER SECTION ---------------- */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-        <div className="flex items-center gap-4">
-          <div className="p-3.5 bg-gradient-to-tr from-red-500 to-orange-400 rounded-2xl text-white shadow-lg shadow-red-500/25">
-            <FiCoffee className="w-8 h-8 animate-bounce" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
-              {isKitchenStaffUser
-                ? "Welcome, Kitchen Staff!"
-                : "Kitchen Operations Portal"}
-            </h1>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 font-semibold">
-              Role:{" "}
-              <span className="text-red-600 dark:text-red-500 font-bold capitalize">
-                {adminUser?.role || "Kitchen Staff"}
-              </span>
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* ---------------- TABS RENDER CONDITIONAL ---------------- */}
+      
       {activeTab === "dashboard" && (
         <div className="space-y-8">
+          
+          <div className="flex items-center gap-4">
+            <div className="p-3.5 bg-gradient-to-tr from-red-500 to-orange-400 rounded-2xl text-white shadow-lg shadow-red-500/25">
+              <FiCoffee className="w-8 h-8" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-extrabold tracking-tight text-zinc-950 dark:text-white">
+                Welcome, Kitchen Staff User!
+              </h1>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 font-semibold">
+                Role:{" "}
+                <span className="text-red-600 dark:text-red-500 font-bold capitalize">
+                  Kitchen Staff
+                </span>
+              </p>
+            </div>
+          </div>
+
           {/* TOP SUMMARY CARDS */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {(isKitchenStaffUser
@@ -1097,6 +1163,21 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
 
       {activeTab === "orders" && (
         <div className="animate-fadeIn">
+          {/* PAGE TITLE */}
+          <div className="mb-8 flex items-center gap-3">
+            <div className="p-2 bg-orange-500/10 rounded-xl text-orange-500 dark:bg-orange-500/20">
+              <FiList className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-extrabold text-zinc-950 dark:text-white tracking-tight">
+                Kitchen Orders
+              </h1>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                Active orders currently being prepared in the kitchen.
+              </p>
+            </div>
+          </div>
+
           {/* KITCHEN STAFF SUB-TABS */}
           {isKitchenStaffUser && (
             <div className="flex border-b border-zinc-200 dark:border-zinc-800 mb-8 overflow-x-auto pb-px">
@@ -1179,591 +1260,289 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
               ))}
             </div>
           </div>
-
-          {/* MAIN OPERATIONAL WORKSPACE (Queue + Details) */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-            {/* Left Queue Panel */}
-            <div className="xl:col-span-2 space-y-5">
-              <div className="flex items-center justify-between pb-2 border-b border-zinc-100 dark:border-zinc-850">
-                <h3 className="text-lg font-black tracking-tight text-zinc-955 dark:text-white">
-                  Preparation Queue
-                </h3>
-                <span className="text-xs font-bold text-zinc-500">
-                  {filteredQueue.length} Active Orders
-                </span>
-              </div>
-
-              {loading ? (
-                <div className="space-y-4 animate-pulse">
-                  {[...Array(3)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="h-40 bg-zinc-200 dark:bg-zinc-850 rounded-3xl"
-                    />
-                  ))}
-                </div>
-              ) : filteredQueue.length === 0 ? (
-                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-12 text-center shadow-xs">
-                  <FiCoffee className="w-12 h-12 text-zinc-300 mx-auto mb-4" />
-                  <h4 className="text-base font-bold text-zinc-800 dark:text-zinc-200">
-                    No Orders in Queue
-                  </h4>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-450 mt-1 max-w-sm mx-auto">
-                    There are no active orders matching your filter or waiting
-                    for kitchen preparation.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <AnimatePresence mode="popLayout">
-                    {filteredQueue.map((order) => {
-                      const getBorderClass = (priority) => {
-                        if (priority === "High")
-                          return "border-l-4 border-l-red-500";
-                        if (priority === "Medium")
-                          return "border-l-4 border-l-orange-500";
-                        return "border-l-4 border-l-zinc-300 dark:border-l-zinc-700";
-                      };
-
-                      return (
-                        <motion.div
-                          key={order._id}
-                          layout
-                          initial={{ opacity: 0, y: 15 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, scale: 0.95 }}
-                          className={`bg-white dark:bg-zinc-900 border transition-all rounded-3xl p-5 shadow-xs hover:shadow-md cursor-pointer relative overflow-hidden ${getBorderClass(order.priority)} ${
-                            selectedOrder?._id === order._id
-                              ? "border-orange-500 dark:border-orange-500 ring-2 ring-orange-500/10"
-                              : "border-zinc-200 dark:border-zinc-800"
-                          }`}
-                          onClick={() => setSelectedOrder(order)}
-                        >
-                          {/* Order Header */}
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 pb-3 border-b border-zinc-100 dark:border-zinc-800/80">
-                            {/* Left Meta: ID, Status, Priority */}
-                            <div className="flex flex-wrap items-center gap-2">
-                              {/* 1. Order ID Monospace Pill */}
-                              <span className="px-2.5 py-0.5 rounded-full text-xs font-black text-orange-600 font-mono bg-orange-50 dark:bg-orange-950/20">
-                                #{order._id?.substring(0, 8).toUpperCase()}
-                              </span>
-
-                              {/* 2. Workflow State Status Pill */}
-                              <span
-                                className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
-                                  order.workflowState === "Ready for Pickup"
-                                    ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400"
-                                    : order.workflowState === "In Progress"
-                                      ? "bg-amber-50 text-amber-600 dark:bg-amber-950/20 dark:text-amber-400"
-                                      : "bg-blue-50 text-blue-600 dark:bg-blue-950/20 dark:text-blue-400"
-                                }`}
-                              >
-                                {order.workflowState}
-                              </span>
-
-                              {/* 3. Priority Level Pill */}
-                              <span
-                                className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
-                                  order.priority === "High"
-                                    ? "bg-red-50 text-red-600 dark:bg-red-950/20 dark:text-red-400"
-                                    : order.priority === "Medium"
-                                      ? "bg-orange-50 text-orange-600 dark:bg-orange-950/20 dark:text-orange-400"
-                                      : "bg-zinc-50 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
-                                }`}
-                              >
-                                {order.priority} Priority
-                              </span>
-                            </div>
-
-                            {/* Right Meta: Chef Assignment & Timestamp */}
-                            <div className="flex flex-wrap items-center gap-3">
-                              {/* 4. Chef Assignment Dropdown */}
-                              {isKitchenStaffUser ? (
-                                order.kitchenStaff ? (
-                                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-indigo-50 text-indigo-600 dark:bg-indigo-950/20 dark:text-indigo-400 flex items-center gap-1">
-                                    <FiUser className="w-2.5 h-2.5" />
-                                    <span>
-                                      {order.kitchenStaff ===
-                                      (adminUser?.name || adminUser?.username)
-                                        ? "My Order"
-                                        : order.kitchenStaff}
-                                    </span>
-                                  </span>
-                                ) : (
-                                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 italic">
-                                    Unassigned
-                                  </span>
-                                )
-                              ) : (
-                                <div
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="flex items-center"
-                                >
-                                  <select
-                                    value={order.kitchenStaff || ""}
-                                    onChange={(e) =>
-                                      updateOrderStatus(
-                                        order._id,
-                                        null,
-                                        e.target.value,
-                                      )
-                                    }
-                                    className="text-xs font-bold uppercase bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-full px-3 py-0.5 focus:outline-none focus:border-orange-500 text-zinc-700 dark:text-zinc-300 cursor-pointer h-6 leading-none"
-                                  >
-                                    <option value="">-- Assign Chef --</option>
-                                    {staffList.map((s) => (
-                                      <option key={s.id} value={s.name}>
-                                        {s.name}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
-                              )}
-
-                              <span className="text-xs text-zinc-500 font-bold">
-                                {new Date(order.date).toLocaleTimeString(
-                                  "en-LK",
-                                  { hour: "2-digit", minute: "2-digit" },
-                                )}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Order Summary details */}
-                          <div className="mb-4">
-                            <h4 className="text-sm font-black text-zinc-900 dark:text-white leading-tight">
-                              {order.address?.firstName}{" "}
-                              {order.address?.lastName}
-                            </h4>
-                            <div className="flex flex-wrap gap-1.5 mt-2.5">
-                              {order.items?.map((it, idx) => (
-                                <span
-                                  key={idx}
-                                  className="inline-block px-2.5 py-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold text-zinc-700 dark:text-zinc-300"
-                                >
-                                  {it.name}{" "}
-                                  <strong className="text-orange-500 ml-1">
-                                    x{it.quantity}
-                                  </strong>
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Footer instructions and action triggers */}
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                            <div className="flex flex-wrap items-center gap-4 text-xs font-bold">
-                              <div className="flex items-center gap-1.5 text-zinc-500">
-                                <FiClock className="w-4 h-4 text-zinc-400" />
-                                <span>Est. Prep: {order.estPrepTime}</span>
-                              </div>
-                              {order.instructions && (
-                                <div className="flex items-center gap-1.5 text-red-500">
-                                  <FiAlertCircle className="w-4 h-4" />
-                                  <span className="max-w-[220px] truncate">
-                                    Note: {order.instructions}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Workflow buttons */}
-                            <div
-                              className="flex items-center gap-2 self-end sm:self-center"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {isKitchenStaffUser ? (
-                                <>
-                                  {/* Claim order */}
-                                  {(!order.kitchenStaff ||
-                                    order.kitchenStaff.trim() === "") && (
-                                    <button
-                                      onClick={() =>
-                                        updateOrderStatus(
-                                          order._id,
-                                          "Food Processing",
-                                          adminUser.name || adminUser.username,
-                                        )
-                                      }
-                                      className="px-3.5 py-2 bg-indigo-650 hover:bg-indigo-755 text-white rounded-xl text-xs font-extrabold shadow-sm active:scale-95 transition cursor-pointer flex items-center gap-1"
-                                    >
-                                      <FiUser className="w-3.5 h-3.5" /> Claim
-                                      &amp; Start
-                                    </button>
-                                  )}
-
-                                  {/* Claimed by ME */}
-                                  {order.kitchenStaff ===
-                                    (adminUser.name || adminUser.username) && (
-                                    <div className="flex items-center gap-2">
-                                      <button
-                                        onClick={() =>
-                                          updateOrderStatus(order._id, null, "")
-                                        }
-                                        className="px-3 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-750 dark:text-zinc-300 rounded-xl text-xs font-extrabold active:scale-95 transition cursor-pointer"
-                                        title="Release order"
-                                      >
-                                        Release
-                                      </button>
-
-                                      {order.workflowState === "Pending" && (
-                                        <button
-                                          onClick={() =>
-                                            updateOrderStatus(
-                                              order._id,
-                                              "Food Processing",
-                                            )
-                                          }
-                                          className="px-3.5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-extrabold shadow-xs transition active:scale-95 cursor-pointer flex items-center gap-1"
-                                        >
-                                          <FiPlay className="w-3.5 h-3.5" />{" "}
-                                          Start Preparing
-                                        </button>
-                                      )}
-                                      {order.workflowState ===
-                                        "In Progress" && (
-                                        <button
-                                          onClick={() =>
-                                            updateOrderStatus(
-                                              order._id,
-                                              "Ready for Delivery",
-                                            )
-                                          }
-                                          className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold shadow-xs transition active:scale-95 cursor-pointer flex items-center gap-1"
-                                        >
-                                          <FiCheck className="w-3.5 h-3.5" />{" "}
-                                          Mark Ready
-                                        </button>
-                                      )}
-                                      {order.workflowState ===
-                                        "Ready for Pickup" && (
-                                        <span className="flex items-center gap-1 text-xs text-emerald-600 font-extrabold bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1.5 rounded-xl">
-                                          <FiCheckCircle className="w-3.5 h-3.5" />{" "}
-                                          Ready
-                                        </span>
-                                      )}
-                                    </div>
-                                  )}
-
-                                  {/* Claimed by someone else */}
-                                  {order.kitchenStaff &&
-                                    order.kitchenStaff !==
-                                      (adminUser.name ||
-                                        adminUser.username) && (
-                                      <span className="text-xs text-zinc-400 dark:text-zinc-550 font-bold italic">
-                                        Claimed by {order.kitchenStaff}
-                                      </span>
-                                    )}
-                                </>
-                              ) : (
-                                <>
-                                  {order.workflowState === "Pending" && (
-                                    <button
-                                      onClick={() =>
-                                        updateOrderStatus(
-                                          order._id,
-                                          "Food Processing",
-                                        )
-                                      }
-                                      className="px-3.5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-extrabold shadow-xs transition active:scale-95 cursor-pointer flex items-center gap-1"
-                                    >
-                                      <FiPlay className="w-3.5 h-3.5" /> Start
-                                      Preparing
-                                    </button>
-                                  )}
-                                  {order.workflowState === "In Progress" && (
-                                    <button
-                                      onClick={() =>
-                                        updateOrderStatus(
-                                          order._id,
-                                          "Ready for Delivery",
-                                        )
-                                      }
-                                      className="px-3.5 py-2 bg-emerald-650 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold shadow-xs transition active:scale-95 cursor-pointer flex items-center gap-1"
-                                    >
-                                      <FiCheck className="w-3.5 h-3.5" /> Mark
-                                      Ready
-                                    </button>
-                                  )}
-                                  {order.workflowState ===
-                                    "Ready for Pickup" && (
-                                    <span className="flex items-center gap-1 text-xs text-emerald-600 font-extrabold bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1.5 rounded-xl">
-                                      <FiCheckCircle className="w-3.5 h-3.5" />{" "}
-                                      Ready for Delivery
-                                    </span>
-                                  )}
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                  </AnimatePresence>
-                </div>
-              )}
+          
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-xs">
+            <div className="flex items-center justify-between pb-4 mb-4 border-b border-zinc-100 dark:border-zinc-850">
+              <h3 className="text-lg font-black tracking-tight text-zinc-955 dark:text-white">
+                Preparation Queue
+              </h3>
+              <span className="text-xs font-bold text-zinc-500">
+                {filteredQueue.length} Active Orders
+              </span>
             </div>
 
-            {/* Right Details Panel */}
-            <div className="xl:col-span-1">
-              {selectedOrder ? (
-                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-xs min-h-[360px] relative overflow-hidden flex flex-col sticky top-24">
-                  <h3 className="text-lg font-black tracking-tight text-zinc-950 dark:text-white mb-4 flex items-center gap-2">
-                    <FiList className="w-5 h-5 text-orange-500" />
-                    Order Details
-                  </h3>
-
-                  <div className="flex-1 flex flex-col justify-between h-full animate-fadeIn text-xs">
-                    <div className="space-y-5">
-                      <div className="flex items-center justify-between pb-3.5 border-b border-zinc-100 dark:border-zinc-800">
-                        <div>
-                          <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider block">
-                            Order Reference
-                          </span>
-                          <span className="font-mono text-zinc-900 dark:text-zinc-200 font-black">
-                            #{selectedOrder._id}
-                          </span>
-                        </div>
-                        <span
-                          className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
-                            selectedOrder.workflowState === "Ready for Pickup"
-                              ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15"
-                              : selectedOrder.workflowState === "In Progress"
-                                ? "bg-amber-50 text-amber-600 dark:bg-amber-500/15"
-                                : "bg-blue-50 text-blue-600 dark:bg-blue-500/15"
-                          }`}
-                        >
-                          {selectedOrder.workflowState}
-                        </span>
-                      </div>
-
-                      {/* Customer details */}
-                      <div className="space-y-3 p-4 bg-zinc-50 dark:bg-zinc-800/40 rounded-2xl border border-zinc-100 dark:border-zinc-800/50">
-                        <div className="flex items-center gap-2.5 text-zinc-700 dark:text-zinc-300">
-                          <FiUser className="w-4 h-4 text-zinc-400 flex-shrink-0" />
-                          <span className="font-bold">
-                            {selectedOrder.address?.firstName}{" "}
-                            {selectedOrder.address?.lastName}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2.5 text-zinc-700 dark:text-zinc-300">
-                          <FiPhone className="w-4 h-4 text-zinc-400 flex-shrink-0" />
-                          <span className="font-semibold">
-                            {selectedOrder.address?.phone ||
-                              "No phone recorded"}
-                          </span>
-                        </div>
-                        <div className="flex items-start gap-2.5 text-zinc-700 dark:text-zinc-300">
-                          <FiMapPin className="w-4 h-4 text-zinc-400 flex-shrink-0 mt-0.5" />
-                          <span className="font-semibold leading-relaxed">
-                            {selectedOrder.address?.street},{" "}
-                            {selectedOrder.address?.city}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Chef Assignment block */}
-                      <div className="p-3.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl">
-                        <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider block mb-2">
-                          Chef Assignment
-                        </span>
-                        {isKitchenStaffUser ? (
-                          <div className="flex items-center justify-between gap-3 text-xs">
-                            <span className="font-bold text-zinc-800 dark:text-zinc-200">
-                              {selectedOrder.kitchenStaff
-                                ? selectedOrder.kitchenStaff ===
-                                  (adminUser?.name || adminUser?.username)
-                                  ? "Assigned to You"
-                                  : `Chef: ${selectedOrder.kitchenStaff}`
-                                : "No Chef assigned yet"}
-                            </span>
-                            {!selectedOrder.kitchenStaff ||
-                            selectedOrder.kitchenStaff.trim() === "" ? (
-                              <button
-                                onClick={() =>
-                                  updateOrderStatus(
-                                    selectedOrder._id,
-                                    "Food Processing",
-                                    adminUser.name || adminUser.username,
-                                  )
-                                }
-                                className="px-3 py-1.5 bg-indigo-650 hover:bg-indigo-755 text-white font-extrabold rounded-xl transition cursor-pointer"
-                              >
-                                Claim
-                              </button>
-                            ) : selectedOrder.kitchenStaff ===
-                              (adminUser?.name || adminUser?.username) ? (
-                              <button
-                                onClick={() =>
-                                  updateOrderStatus(selectedOrder._id, null, "")
-                                }
-                                className="px-3 py-1.5 bg-zinc-200 hover:bg-zinc-250 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 font-bold rounded-xl transition cursor-pointer"
-                              >
-                                Release
-                              </button>
-                            ) : null}
+            {loading ? (
+              <div className="space-y-4 animate-pulse">
+                {[...Array(3)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-16 bg-zinc-200 dark:bg-zinc-850 rounded-xl"
+                  />
+                ))}
+              </div>
+            ) : filteredQueue.length === 0 ? (
+              <div className="text-center py-12">
+                <FiCoffee className="w-12 h-12 text-zinc-300 mx-auto mb-4" />
+                <h4 className="text-base font-bold text-zinc-800 dark:text-zinc-200">
+                  No Orders in Queue
+                </h4>
+                <p className="text-xs text-zinc-500 dark:text-zinc-450 mt-1 max-w-sm mx-auto">
+                  There are no active orders matching your filter or waiting
+                  for kitchen preparation.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="overflow-x-auto font-sans rounded-2xl border border-zinc-200 dark:border-zinc-800">
+                  <table className="w-full text-left text-sm border-collapse">
+                  <thead>
+                    <tr className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 text-xs font-black uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                      <th className="p-4 rounded-l-2xl">Order ID</th>
+                      <th className="p-4">Priority & Info</th>
+                      <th className="p-4">Customer & Dishes</th>
+                      <th className="p-4">Chef Assignment</th>
+                      <th className="p-4">Status</th>
+                      <th className="p-4 rounded-r-2xl">Actions</th>
+                    </tr>
+                  </thead>
+                    <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800 font-medium">
+                      {paginatedQueue.map((order) => (
+                      <tr
+                        key={order._id}
+                        className="hover:bg-zinc-50/50 dark:hover:bg-zinc-850/50 transition"
+                      >
+                        <td className="p-4 font-bold text-orange-600 dark:text-orange-400 font-mono text-xs">
+                          #{order._id?.substring(0, 8).toUpperCase()}
+                          <div className="text-zinc-400 font-sans mt-1 text-[10px]">
+                             {new Date(order.date).toLocaleTimeString("en-LK", { hour: "2-digit", minute: "2-digit" })}
                           </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <FiUser className="w-4 h-4 text-zinc-400" />
+                        </td>
+                        <td className="p-4">
+                          <span
+                            className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
+                              order.priority === "High"
+                                ? "bg-red-50 text-red-600 dark:bg-red-950/20 dark:text-red-400"
+                                : order.priority === "Medium"
+                                  ? "bg-orange-50 text-orange-600 dark:bg-orange-950/20 dark:text-orange-400"
+                                  : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
+                            }`}
+                          >
+                            {order.priority}
+                          </span>
+                          <div className="flex items-center gap-1.5 text-zinc-500 mt-2 text-xs font-bold">
+                             <FiClock className="w-3.5 h-3.5 text-zinc-400" />
+                             <span>{order.estPrepTime}</span>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div className="font-black text-zinc-900 dark:text-white text-sm mb-1.5">
+                            {order.address?.firstName} {order.address?.lastName}
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {order.items?.map((it, idx) => (
+                              <span
+                                key={idx}
+                                className="inline-block px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded-md text-[10px] font-bold text-zinc-700 dark:text-zinc-300"
+                              >
+                                {it.name} <strong className="text-orange-500">x{it.quantity}</strong>
+                              </span>
+                            ))}
+                          </div>
+                          {order.instructions && (
+                             <div className="flex items-center gap-1 text-red-500 mt-2 text-[10px] font-bold">
+                               <FiAlertCircle className="w-3 h-3" />
+                               <span className="max-w-[200px] truncate">
+                                 {order.instructions}
+                               </span>
+                             </div>
+                          )}
+                        </td>
+                        <td className="p-4">
+                          {isKitchenStaffUser ? (
+                            order.kitchenStaff ? (
+                              <span className="px-2.5 py-1 rounded-xl text-xs font-bold uppercase tracking-wider bg-indigo-50 text-indigo-600 dark:bg-indigo-950/20 dark:text-indigo-400 flex items-center gap-1 w-max">
+                                <FiUser className="w-3 h-3" />
+                                {order.kitchenStaff === (adminUser?.name || adminUser?.username) ? "My Order" : order.kitchenStaff}
+                              </span>
+                            ) : (
+                              <span className="px-2.5 py-1 rounded-xl text-xs font-bold uppercase tracking-wider bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 italic">
+                                Unassigned
+                              </span>
+                            )
+                          ) : (
                             <select
-                              value={selectedOrder.kitchenStaff || ""}
-                              onChange={(e) =>
-                                updateOrderStatus(
-                                  selectedOrder._id,
-                                  null,
-                                  e.target.value,
-                                )
-                              }
-                              className="flex-1 text-xs font-semibold bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-orange-500 text-zinc-800 dark:text-zinc-200 cursor-pointer"
+                              value={order.kitchenStaff || ""}
+                              onChange={(e) => updateOrderStatus(order._id, null, e.target.value)}
+                              className="text-xs font-bold uppercase bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-2 py-1.5 focus:outline-none focus:border-orange-500 text-zinc-700 dark:text-zinc-300 cursor-pointer"
                             >
-                              <option value="">-- Unassigned --</option>
+                              <option value="">-- Assign --</option>
                               {staffList.map((s) => (
-                                <option key={s.id} value={s.name}>
-                                  {s.name}
-                                </option>
+                                <option key={s.id} value={s.name}>{s.name}</option>
                               ))}
                             </select>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Items List */}
-                      <div>
-                        <h4 className="font-bold text-zinc-500 uppercase text-xs tracking-wider mb-2">
-                          Ordered Items
-                        </h4>
-                        <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
-                          {selectedOrder.items?.map((it, idx) => (
-                            <div
-                              key={idx}
-                              className="flex justify-between items-center bg-zinc-50 dark:bg-zinc-800 p-2.5 rounded-xl"
-                            >
-                              <span className="font-bold text-zinc-800 dark:text-zinc-200">
-                                {it.name}{" "}
-                                <strong className="text-orange-500 font-extrabold ml-1">
-                                  x{it.quantity}
-                                </strong>
-                              </span>
-                              <span className="font-extrabold text-zinc-900 dark:text-white">
-                                {formatMoney(it.price * it.quantity)}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Special instructions */}
-                      {selectedOrder.instructions && (
-                        <div className="p-3 bg-red-50 dark:bg-red-950/10 border border-red-100 dark:border-red-950/20 rounded-xl text-red-600 dark:text-red-400 flex items-start gap-2">
-                          <FiAlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                          <div>
-                            <span className="font-bold block uppercase text-xs tracking-wider mb-0.5">
-                              Special Instructions
-                            </span>
-                            <p className="font-semibold leading-relaxed">
-                              {selectedOrder.instructions}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Footer buttons details */}
-                    <div className="mt-6 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                      {isKitchenStaffUser &&
-                      selectedOrder.kitchenStaff !==
-                        (adminUser?.name || adminUser?.username) ? (
-                        <div className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-850 text-zinc-500 rounded-xl font-bold flex items-center justify-center gap-1.5 border border-zinc-200 dark:border-zinc-800 italic">
-                          <FiUser className="w-4 h-4" />
-                          <span>Assign to yourself to update progress</span>
-                        </div>
-                      ) : (
-                        <>
-                          {selectedOrder.workflowState === "Pending" && (
-                            <button
-                              onClick={() =>
-                                updateOrderStatus(
-                                  selectedOrder._id,
-                                  "Food Processing",
-                                )
-                              }
-                              className="w-full flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-3 text-xs font-bold text-white shadow-xs hover:bg-orange-600 transition active:scale-95 cursor-pointer"
-                            >
-                              <FiPlay className="w-4 h-4" />
-                              <span>Start Preparing</span>
-                            </button>
                           )}
-                          {selectedOrder.workflowState === "In Progress" && (
-                            <button
-                              onClick={() =>
-                                updateOrderStatus(
-                                  selectedOrder._id,
-                                  "Ready for Delivery",
-                                )
-                              }
-                              className="w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-xs font-bold text-white shadow-xs hover:bg-emerald-600 transition active:scale-95 cursor-pointer"
-                            >
-                              <FiCheck className="w-4 h-4" />
-                              <span>Mark as Ready for Delivery</span>
-                            </button>
-                          )}
-                          {selectedOrder.workflowState ===
-                            "Ready for Pickup" && (
-                            <div className="p-3 bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-150 dark:border-emerald-900/30 rounded-xl text-center">
-                              <span className="text-xs font-bold text-emerald-805 dark:text-emerald-400">
-                                Order is Prepared & Ready!
-                              </span>
-                            </div>
-                          )}
-                        </>
-                      )}
+                        </td>
+                        <td className="p-4">
+                          <span
+                            className={`px-2.5 py-1 rounded-xl text-xs font-bold uppercase tracking-wider whitespace-nowrap ${
+                              order.workflowState === "Ready for Pickup"
+                                ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400"
+                                : order.workflowState === "In Progress"
+                                  ? "bg-amber-50 text-amber-600 dark:bg-amber-950/20 dark:text-amber-400"
+                                  : "bg-blue-50 text-blue-600 dark:bg-blue-950/20 dark:text-blue-400"
+                            }`}
+                          >
+                            {order.workflowState}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                           <div className="flex flex-col gap-2">
+                             {isKitchenStaffUser ? (
+                               <>
+                                 {(!order.kitchenStaff || order.kitchenStaff.trim() === "") && (
+                                   <button
+                                     onClick={() => updateOrderStatus(order._id, "Food Processing", adminUser.name || adminUser.username)}
+                                     className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-extrabold shadow-sm active:scale-95 transition cursor-pointer whitespace-nowrap"
+                                   >
+                                     Claim & Start
+                                   </button>
+                                 )}
+                                 {order.kitchenStaff === (adminUser.name || adminUser.username) && (
+                                   <>
+                                     {order.workflowState === "Pending" && (
+                                       <button
+                                         onClick={() => updateOrderStatus(order._id, "Food Processing")}
+                                         className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-extrabold shadow-sm transition active:scale-95 cursor-pointer whitespace-nowrap"
+                                       >
+                                         Start Prep
+                                       </button>
+                                     )}
+                                     {order.workflowState === "In Progress" && (
+                                       <button
+                                         onClick={() => updateOrderStatus(order._id, "Ready for Delivery")}
+                                         className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-extrabold shadow-sm transition active:scale-95 cursor-pointer whitespace-nowrap"
+                                       >
+                                         Mark Ready
+                                       </button>
+                                     )}
+                                   </>
+                                 )}
+                                 {order.workflowState === "Ready for Pickup" && (
+                                    <span className="text-xs font-bold text-emerald-500 text-center py-1.5">Completed</span>
+                                 )}
+                               </>
+                             ) : (
+                               <>
+                                 {order.workflowState === "Pending" && (
+                                   <button
+                                     onClick={() => updateOrderStatus(order._id, "Food Processing")}
+                                     className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-extrabold shadow-sm transition active:scale-95 cursor-pointer whitespace-nowrap"
+                                   >
+                                     Start Prep
+                                   </button>
+                                 )}
+                                 {order.workflowState === "In Progress" && (
+                                   <button
+                                     onClick={() => updateOrderStatus(order._id, "Ready for Delivery")}
+                                     className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-extrabold shadow-sm transition active:scale-95 cursor-pointer whitespace-nowrap"
+                                   >
+                                     Mark Ready
+                                   </button>
+                                 )}
+                                 {order.workflowState === "Ready for Pickup" && (
+                                    <span className="text-xs font-bold text-emerald-500 text-center py-1.5">Completed</span>
+                                 )}
+                               </>
+                             )}
+                           </div>
+                        </td>
+                      </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {totalKitchenOrdersPages > 1 && (
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200 pt-4 dark:border-zinc-700">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      Showing {(currentOrdersPage - 1) * KITCHEN_ORDERS_PER_PAGE + 1}-
+                      {Math.min(
+                        currentOrdersPage * KITCHEN_ORDERS_PER_PAGE,
+                        filteredQueue.length,
+                      )}{" "}
+                      of {filteredQueue.length} orders
+                    </p>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCurrentOrdersPage((page) => Math.max(1, page - 1))
+                        }
+                        disabled={currentOrdersPage === 1}
+                        className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                      >
+                        Prev
+                      </button>
+
+                      {Array.from(
+                        { length: totalKitchenOrdersPages },
+                        (_, i) => i + 1,
+                      ).map((page) => (
+                        <button
+                          key={page}
+                          type="button"
+                          onClick={() => setCurrentOrdersPage(page)}
+                          className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                            page === currentOrdersPage
+                              ? "bg-orange-600 text-white"
+                              : "border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ))}
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCurrentOrdersPage((page) =>
+                            Math.min(totalKitchenOrdersPages, page + 1),
+                          )
+                        }
+                        disabled={currentOrdersPage === totalKitchenOrdersPages}
+                        className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                      >
+                        Next
+                      </button>
                     </div>
                   </div>
-                </div>
-              ) : (
-                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-xs space-y-4">
-                  <h4 className="text-base font-black text-zinc-955 dark:text-white">
-                    Active Queue Stats
-                  </h4>
-                  <div className="space-y-3.5 text-xs">
-                    <div className="flex justify-between items-center font-bold">
-                      <span className="text-zinc-500">Preparing Orders</span>
-                      <span className="text-zinc-950 dark:text-white">
-                        {summaryMetrics.preparingCount}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center font-bold">
-                      <span className="text-zinc-500">Unassigned Orders</span>
-                      <span className="text-zinc-950 dark:text-white">
-                        {summaryMetrics.unassignedCount}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center font-bold">
-                      <span className="text-zinc-500">Total Queue Load</span>
-                      <span className="text-zinc-950 dark:text-white">
-                        {filteredQueue.length}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
 
       {activeTab === "history" && (
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-xs animate-fadeIn">
-          <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="animate-fadeIn">
+          {/* PAGE TITLE */}
+          <div className="mb-8 flex items-center gap-3">
+            <div className="p-2 bg-emerald-500/10 rounded-xl text-emerald-500 dark:bg-emerald-500/20">
+              <FiCheckCircle className="w-5 h-5" />
+            </div>
             <div>
-              <h3 className="text-lg font-black tracking-tight text-zinc-955 dark:text-white">
+              <h1 className="text-2xl font-extrabold text-zinc-950 dark:text-white tracking-tight">
                 Order History
-              </h3>
-              <p className="text-xs text-zinc-405 dark:text-zinc-500 mt-0.5 font-medium">
-                List of completed and dispatched preparation logs
+              </h1>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                Completed and dispatched preparation logs.
               </p>
             </div>
+          </div>
+
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-xs">
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
 
             {/* Search History */}
             <div className="relative max-w-xs w-full">
@@ -1778,7 +1557,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
             </div>
           </div>
 
-          {completedOrders.length === 0 ? (
+          {filteredHistoryOrders.length === 0 ? (
             <div className="text-center py-12">
               <FiCheckCircle className="w-12 h-12 text-zinc-300 mx-auto mb-4" />
               <h4 className="text-base font-bold text-zinc-800 dark:text-zinc-200">
@@ -1789,8 +1568,9 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto font-sans rounded-2xl border border-zinc-200 dark:border-zinc-800">
-              <table className="w-full text-left text-sm border-collapse">
+            <div className="space-y-4">
+              <div className="overflow-x-auto font-sans rounded-2xl border border-zinc-200 dark:border-zinc-800">
+                <table className="w-full text-left text-sm border-collapse">
                 <thead>
                   <tr className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 text-xs font-black uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                     <th className="p-4 rounded-l-2xl">Order ID</th>
@@ -1801,19 +1581,8 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
                     <th className="p-4 rounded-r-2xl">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800 font-medium">
-                  {completedOrders
-                    .filter((order) => {
-                      const query = searchQuery.toLowerCase().trim();
-                      return (
-                        !query ||
-                        order._id?.toLowerCase().includes(query) ||
-                        `${order.address?.firstName || ""} ${order.address?.lastName || ""}`
-                          .toLowerCase()
-                          .includes(query)
-                      );
-                    })
-                    .map((order) => (
+                  <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800 font-medium">
+                    {paginatedHistoryOrders.map((order) => (
                       <tr
                         key={order._id}
                         className="hover:bg-zinc-50/50 dark:hover:bg-zinc-850/50 transition"
@@ -1853,10 +1622,68 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
                         </td>
                       </tr>
                     ))}
-                </tbody>
-              </table>
+                  </tbody>
+                </table>
+              </div>
+
+              {totalHistoryPages > 1 && (
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200 pt-4 dark:border-zinc-700">
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    Showing {(currentHistoryPage - 1) * HISTORY_ORDERS_PER_PAGE + 1}-
+                    {Math.min(
+                      currentHistoryPage * HISTORY_ORDERS_PER_PAGE,
+                      filteredHistoryOrders.length,
+                    )}{" "}
+                    of {filteredHistoryOrders.length} history orders
+                  </p>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCurrentHistoryPage((page) => Math.max(1, page - 1))
+                      }
+                      disabled={currentHistoryPage === 1}
+                      className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                    >
+                      Prev
+                    </button>
+
+                    {Array.from({ length: totalHistoryPages }, (_, i) => i + 1).map(
+                      (page) => (
+                        <button
+                          key={page}
+                          type="button"
+                          onClick={() => setCurrentHistoryPage(page)}
+                          className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                            page === currentHistoryPage
+                              ? "bg-emerald-600 text-white"
+                              : "border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ),
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCurrentHistoryPage((page) =>
+                          Math.min(totalHistoryPages, page + 1),
+                        )
+                      }
+                      disabled={currentHistoryPage === totalHistoryPages}
+                      className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
+        </div>
         </div>
       )}
     </div>

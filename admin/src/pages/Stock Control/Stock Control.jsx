@@ -154,7 +154,7 @@ const StockList = ({ url, adminToken }) => {
   const filteredFoods = foods.filter(item => 
     item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     item.category.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  ).sort((a, b) => (a.quantity || 0) - (b.quantity || 0))
 
   return (
     <div className="p-6 md:p-8 max-w-6xl mx-auto animate-fadeIn text-zinc-900 dark:text-zinc-100">

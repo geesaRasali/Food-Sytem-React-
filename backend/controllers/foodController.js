@@ -368,12 +368,11 @@ const addTransfer = async (req, res) => {
   }
 };
 
-// List all stock transfers
 const listTransfers = async (req, res) => {
   try {
     const { status } = req.query;
     const activeFoods = await foodModel.find({}, { _id: 1, category: 1 });
-    const activeFoodIds = activeFoods.map(f => f._id.toString());
+    const activeFoodIds = activeFoods.map(f => f._id);
     const foodCategoryMap = {};
     activeFoods.forEach(f => { foodCategoryMap[f._id.toString()] = f.category; });
 
@@ -382,7 +381,7 @@ const listTransfers = async (req, res) => {
 
     const transfers = await transferModel.find(filter).sort({ date: -1 });
 
-    // (old records)
+    
     const enriched = transfers.map(t => {
       const obj = t.toObject();
       if (!obj.category) {

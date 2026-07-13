@@ -16,11 +16,14 @@ import {
   FiCheck,
 } from "react-icons/fi";
 
+const DELIVERED_ORDERS_PER_PAGE = 5;
+
 const DeliveryMonitoring = ({ url, adminToken, adminUser }) => {
   const isRider = adminUser?.role === "delivery staff";
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentTab, setCurrentTab] = useState("Ready for Delivery"); // 'Ready for Delivery', 'Out for Delivery', 'Delivered'
+  const [deliveredPage, setDeliveredPage] = useState(1);
   const streamRef = useRef(null);
 
   // Fetch all orders from backend database
@@ -143,6 +146,26 @@ const DeliveryMonitoring = ({ url, adminToken, adminUser }) => {
   const deliveredOrders = useMemo(() => {
     return deliveryOrders.filter((o) => o.status === "Delivered");
   }, [deliveryOrders]);
+
+  const deliveredTotalPages = Math.max(
+    1,
+    Math.ceil(deliveredOrders.length / DELIVERED_ORDERS_PER_PAGE),
+  );
+
+  const paginatedDeliveredOrders = useMemo(() => {
+    const start = (deliveredPage - 1) * DELIVERED_ORDERS_PER_PAGE;
+    return deliveredOrders.slice(start, start + DELIVERED_ORDERS_PER_PAGE);
+  }, [deliveredOrders, deliveredPage]);
+
+  useEffect(() => {
+    setDeliveredPage(1);
+  }, [currentTab]);
+
+  useEffect(() => {
+    if (deliveredPage > deliveredTotalPages) {
+      setDeliveredPage(deliveredTotalPages);
+    }
+  }, [deliveredPage, deliveredTotalPages]);
 
   return (
     <div className="p-6 md:p-8 max-w-[1600px] mx-auto animate-fadeIn text-zinc-900 dark:text-zinc-100 font-sans">
@@ -292,7 +315,7 @@ const DeliveryMonitoring = ({ url, adminToken, adminUser }) => {
                 ? readyOrders
                 : currentTab === "Out for Delivery"
                   ? outOrders
-                  : deliveredOrders;
+                  : paginatedDeliveredOrders;
 
             if (activeList.length === 0) {
               return (
@@ -307,117 +330,176 @@ const DeliveryMonitoring = ({ url, adminToken, adminUser }) => {
             }
 
             return (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {activeList.map((order) => (
-                  <div
-                    key={order._id}
-                    className="bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-xs hover:shadow-sm transition flex flex-col justify-between min-h-[340px]"
-                  >
-                    <div>
-                      {/* Card Header */}
-                      <div className="flex items-center justify-between mb-4 pb-3 border-b border-zinc-200/60 dark:border-zinc-800/60">
-                        <span className="text-sm font-black text-orange-600 font-mono">
-                          #{order._id.substring(0, 8).toUpperCase()}
-                        </span>
-                        <span className="text-xs text-zinc-400 font-bold flex items-center gap-1.5">
-                          <FiCalendar size={13} />
-                          {new Date(order.date).toLocaleTimeString("en-US", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
-                      </div>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {activeList.map((order) => (
+                    <div
+                      key={order._id}
+                      className="bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-xs hover:shadow-sm transition flex flex-col justify-between min-h-[340px]"
+                    >
+                      <div>
+                        {/* Card Header */}
+                        <div className="flex items-center justify-between mb-4 pb-3 border-b border-zinc-200/60 dark:border-zinc-800/60">
+                          <span className="text-sm font-black text-orange-600 font-mono">
+                            #{order._id.substring(0, 8).toUpperCase()}
+                          </span>
+                          <span className="text-xs text-zinc-400 font-bold flex items-center gap-1.5">
+                            <FiCalendar size={13} />
+                            {new Date(order.date).toLocaleTimeString("en-US", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </div>
 
-                      {/* Customer Info Card */}
-                      <div className="mb-4 p-4 bg-zinc-100/60 dark:bg-zinc-800/40 rounded-xl border border-zinc-200/50 dark:border-zinc-800/50 space-y-3">
-                        <div className="flex items-center gap-2.5 text-zinc-900 dark:text-zinc-100">
-                          <FiUser className="w-4 h-4 text-zinc-405 shrink-0" />
-                          <span className="font-bold text-sm">
-                            {order.address?.firstName} {order.address?.lastName}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2.5 text-zinc-805 dark:text-zinc-200">
-                          <FiPhone className="w-4 h-4 text-zinc-405 shrink-0" />
-                          <span className="font-bold text-sm">
-                            {order.address?.phone}
-                          </span>
-                        </div>
-                        <div className="flex items-start gap-2.5 text-zinc-805 dark:text-zinc-200">
-                          <FiMapPin className="w-4 h-4 text-zinc-450 shrink-0 mt-0.5" />
-                          <span className="font-semibold text-sm leading-relaxed">
-                            {order.address?.street}, {order.address?.city}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Items */}
-                      <div className="mb-4">
-                        <p className="text-[10px] font-black uppercase tracking-wider text-zinc-455 mb-2">
-                          Items
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {order.items.map((item, idx) => (
-                            <span
-                              key={idx}
-                              className="inline-block px-3 py-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-bold rounded-lg shadow-2xs"
-                            >
-                              {item.name}{" "}
-                              <span className="text-orange-500 font-black">
-                                x{item.quantity}
-                              </span>
+                        {/* Customer Info Card */}
+                        <div className="mb-4 p-4 bg-zinc-100/60 dark:bg-zinc-800/40 rounded-xl border border-zinc-200/50 dark:border-zinc-800/50 space-y-3">
+                          <div className="flex items-center gap-2.5 text-zinc-900 dark:text-zinc-100">
+                            <FiUser className="w-4 h-4 text-zinc-405 shrink-0" />
+                            <span className="font-bold text-sm">
+                              {order.address?.firstName} {order.address?.lastName}
                             </span>
-                          ))}
+                          </div>
+                          <div className="flex items-center gap-2.5 text-zinc-805 dark:text-zinc-200">
+                            <FiPhone className="w-4 h-4 text-zinc-405 shrink-0" />
+                            <span className="font-bold text-sm">
+                              {order.address?.phone}
+                            </span>
+                          </div>
+                          <div className="flex items-start gap-2.5 text-zinc-805 dark:text-zinc-200">
+                            <FiMapPin className="w-4 h-4 text-zinc-450 shrink-0 mt-0.5" />
+                            <span className="font-semibold text-sm leading-relaxed">
+                              {order.address?.street}, {order.address?.city}
+                            </span>
+                          </div>
                         </div>
+
+                        {/* Items */}
+                        <div className="mb-4">
+                          <p className="text-[10px] font-black uppercase tracking-wider text-zinc-455 mb-2">
+                            Items
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {order.items.map((item, idx) => (
+                              <span
+                                key={idx}
+                                className="inline-block px-3 py-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-bold rounded-lg shadow-2xs"
+                              >
+                                {item.name}{" "}
+                                <span className="text-orange-500 font-black">
+                                  x{item.quantity}
+                                </span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Assigned Rider Info (only for Out/Delivered) */}
+                        {order.status !== "Ready for Delivery" && (
+                          <div className="mb-4 flex items-center gap-2 pt-1">
+                            <div className="w-6 h-6 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-xs font-bold text-zinc-550">
+                              {order.deliveryStaff
+                                ? order.deliveryStaff[0].toUpperCase()
+                                : "?"}
+                            </div>
+                            <span className="text-xs text-zinc-500 font-bold">
+                              Rider: {order.deliveryStaff || "Unassigned"}
+                            </span>
+                          </div>
+                        )}
                       </div>
 
-                      {/* Assigned Rider Info (only for Out/Delivered) */}
-                      {order.status !== "Ready for Delivery" && (
-                        <div className="mb-4 flex items-center gap-2 pt-1">
-                          <div className="w-6 h-6 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-xs font-bold text-zinc-550">
-                            {order.deliveryStaff
-                              ? order.deliveryStaff[0].toUpperCase()
-                              : "?"}
+                      {/* Action Block */}
+                      <div className="pt-3 border-t border-zinc-200/50 dark:border-zinc-800/50 mt-auto">
+                        {order.status === "Ready for Delivery" && (
+                          <button
+                            onClick={() =>
+                              updateDeliveryStatus(order._id, "Out for delivery")
+                            }
+                            className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-black shadow-xs tracking-wider transition cursor-pointer flex items-center justify-center gap-1"
+                          >
+                            Mark as Out for Delivery{" "}
+                            <FiArrowRight className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+
+                        {order.status === "Out for delivery" && (
+                          <button
+                            onClick={() =>
+                              updateDeliveryStatus(order._id, "Delivered")
+                            }
+                            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow-xs tracking-wider transition cursor-pointer flex items-center justify-center gap-1"
+                          >
+                            Mark as Delivered <FiCheck className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+
+                        {order.status === "Delivered" && (
+                          <div className="w-full py-2.5 bg-emerald-50 dark:bg-emerald-955/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-black uppercase tracking-wider text-center flex items-center justify-center gap-1 border border-emerald-100 dark:border-emerald-900/30">
+                            <FiCheckCircle className="w-4 h-4" /> Delivered
                           </div>
-                          <span className="text-xs text-zinc-500 font-bold">
-                            Rider: {order.deliveryStaff || "Unassigned"}
-                          </span>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
+                  ))}
+                </div>
 
-                    {/* Action Block */}
-                    <div className="pt-3 border-t border-zinc-200/50 dark:border-zinc-800/50 mt-auto">
-                      {order.status === "Ready for Delivery" && (
+                {currentTab === "Delivered" && deliveredTotalPages > 1 && (
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200 pt-4 dark:border-zinc-700">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      Showing {(deliveredPage - 1) * DELIVERED_ORDERS_PER_PAGE + 1}-
+                      {Math.min(
+                        deliveredPage * DELIVERED_ORDERS_PER_PAGE,
+                        deliveredOrders.length,
+                      )}{" "}
+                      of {deliveredOrders.length} delivered orders
+                    </p>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setDeliveredPage((page) => Math.max(1, page - 1))
+                        }
+                        disabled={deliveredPage === 1}
+                        className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                      >
+                        Prev
+                      </button>
+
+                      {Array.from(
+                        { length: deliveredTotalPages },
+                        (_, i) => i + 1,
+                      ).map((page) => (
                         <button
-                          onClick={() =>
-                            updateDeliveryStatus(order._id, "Out for delivery")
-                          }
-                          className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-black shadow-xs tracking-wider transition cursor-pointer flex items-center justify-center gap-1"
+                          key={page}
+                          type="button"
+                          onClick={() => setDeliveredPage(page)}
+                          className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                            page === deliveredPage
+                              ? "bg-emerald-600 text-white"
+                              : "border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                          }`}
                         >
-                          Mark as Out for Delivery{" "}
-                          <FiArrowRight className="w-3.5 h-3.5" />
+                          {page}
                         </button>
-                      )}
+                      ))}
 
-                      {order.status === "Out for delivery" && (
-                        <button
-                          onClick={() =>
-                            updateDeliveryStatus(order._id, "Delivered")
-                          }
-                          className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black shadow-xs tracking-wider transition cursor-pointer flex items-center justify-center gap-1"
-                        >
-                          Mark as Delivered <FiCheck className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-
-                      {order.status === "Delivered" && (
-                        <div className="w-full py-2.5 bg-emerald-50 dark:bg-emerald-955/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-black uppercase tracking-wider text-center flex items-center justify-center gap-1 border border-emerald-100 dark:border-emerald-900/30">
-                          <FiCheckCircle className="w-4 h-4" /> Delivered
-                        </div>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setDeliveredPage((page) =>
+                            Math.min(deliveredTotalPages, page + 1),
+                          )
+                        }
+                        disabled={deliveredPage === deliveredTotalPages}
+                        className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                      >
+                        Next
+                      </button>
                     </div>
                   </div>
-                ))}
+                )}
               </div>
             );
           })()

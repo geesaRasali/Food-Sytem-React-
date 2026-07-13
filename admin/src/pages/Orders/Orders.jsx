@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import axios from "axios";
 import { assets } from "../../assets/assets";
@@ -6,11 +6,15 @@ import { normalizeRole, ROLES } from "../../config/rbac";
 import { FiSearch, FiX } from "react-icons/fi";
 
 const POLL_INTERVAL_MS = 15000;
+const ORDERS_PER_PAGE = 5;
+
+const getOrderDate = (order) => new Date(order.createdAt || order.date || 0);
 
 const Orders = ({ url, adminToken, adminUser }) => {
   const [Orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const pollRef = useRef(null);
   const normalizedRole = normalizeRole(adminUser?.role);
   const isDeliveryStaff = normalizedRole === ROLES.DELIVERY_STAFF;
@@ -35,7 +39,6 @@ const Orders = ({ url, adminToken, adminUser }) => {
       });
       if (response.data.success) {
         setOrders(response.data.data || []);
-        setLastUpdated(new Date());
       } else {
         if (!silent) toast.error("Error fetching orders");
       }
@@ -101,38 +104,69 @@ const Orders = ({ url, adminToken, adminUser }) => {
       !order.status?.toLowerCase().includes("cancel"),
   ).length;
 
-  const filteredOrders = Orders.filter((order) => {
+  const filteredOrders = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
-    if (!query) return true;
 
-    const firstName = order.address?.firstName || "";
-    const lastName = order.address?.lastName || "";
-    const fullName = `${firstName} ${lastName}`.toLowerCase();
-    const itemsText = (order.items || [])
-      .map((item) => `${item.name} x ${item.quantity}`)
-      .join(" ")
-      .toLowerCase();
-    const orderId = String(order._id || "").toLowerCase();
-    const phone = String(order.address?.phone || "").toLowerCase();
-    const city = String(order.address?.city || "").toLowerCase();
-    const street = String(order.address?.street || "").toLowerCase();
+    return Orders.filter((order) => {
+      if (!query) return true;
 
-    return (
-      fullName.includes(query) ||
-      itemsText.includes(query) ||
-      orderId.includes(query) ||
-      phone.includes(query) ||
-      city.includes(query) ||
-      street.includes(query)
-    );
-  });
+      const firstName = order.address?.firstName || "";
+      const lastName = order.address?.lastName || "";
+      const fullName = `${firstName} ${lastName}`.toLowerCase();
+      const itemsText = (order.items || [])
+        .map((item) => `${item.name} x ${item.quantity}`)
+        .join(" ")
+        .toLowerCase();
+      const orderId = String(order._id || "").toLowerCase();
+      const phone = String(order.address?.phone || "").toLowerCase();
+      const city = String(order.address?.city || "").toLowerCase();
+      const street = String(order.address?.street || "").toLowerCase();
+
+      return (
+        fullName.includes(query) ||
+        itemsText.includes(query) ||
+        orderId.includes(query) ||
+        phone.includes(query) ||
+        city.includes(query) ||
+        street.includes(query)
+      );
+    });
+  }, [Orders, searchQuery]);
+
+  const sortedOrders = useMemo(
+    () =>
+      [...filteredOrders].sort(
+        (a, b) => getOrderDate(b).getTime() - getOrderDate(a).getTime(),
+      ),
+    [filteredOrders],
+  );
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(sortedOrders.length / ORDERS_PER_PAGE),
+  );
+
+  const paginatedOrders = useMemo(() => {
+    const start = (currentPage - 1) * ORDERS_PER_PAGE;
+    return sortedOrders.slice(start, start + ORDERS_PER_PAGE);
+  }, [sortedOrders, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   // Initial load
   useEffect(() => {
     fetchAllOrders();
   }, []);
 
-  // Auto-polling: silently refresh every 15 s to stay in sync with kitchen updates
+  
   useEffect(() => {
     if (!url || !adminToken) return;
     pollRef.current = setInterval(() => {
@@ -242,7 +276,7 @@ const Orders = ({ url, adminToken, adminUser }) => {
           </div>
         ) : (
           <div className="space-y-3">
-            {filteredOrders.map((order, index) => (
+            {paginatedOrders.map((order, index) => (
               <article
                 key={order._id || index}
                 className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-[0_8px_20px_rgba(15,23,42,0.05)] dark:border-zinc-700 dark:bg-zinc-900"
@@ -337,6 +371,53 @@ const Orders = ({ url, adminToken, adminUser }) => {
                 </div>
               </article>
             ))}
+
+            {totalPages > 1 && (
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200 pt-4 dark:border-zinc-700">
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  Showing {(currentPage - 1) * ORDERS_PER_PAGE + 1}–
+                  {Math.min(currentPage * ORDERS_PER_PAGE, sortedOrders.length)}{" "}
+                  of {sortedOrders.length} orders
+                </p>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((page) => page - 1)}
+                    disabled={currentPage === 1}
+                    className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                  >
+                    Prev
+                  </button>
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                    (page) => (
+                      <button
+                        key={page}
+                        type="button"
+                        onClick={() => setCurrentPage(page)}
+                        className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                          page === currentPage
+                            ? "bg-orange-600 text-white"
+                            : "border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    ),
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((page) => page + 1)}
+                    disabled={currentPage === totalPages}
+                    className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

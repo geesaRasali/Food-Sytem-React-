@@ -95,6 +95,10 @@ const Messages = ({ url, adminToken }) => {
     if (activeFilter === 'Pending') return !isReplied;
     if (activeFilter === 'Replied') return isReplied;
     return true; // 'All'
+  }).sort((a, b) => {
+    const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
+    const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
+    return dateB - dateA;
   });
 
   return (

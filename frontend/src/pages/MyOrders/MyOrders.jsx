@@ -4,13 +4,14 @@ import React, {
   useEffect,
   useRef,
   useCallback,
+  useMemo,
 } from "react";
 import { StoreContext } from "../../context/StoreContext";
 import axios from "axios";
 import { assets } from "../../assets/assets";
 import { createOrderEventSource } from "../../lib/orderRealtime";
 
-// ─── Status pipeline definition ────────────────────────────────────────────
+
 const ORDER_PIPELINE = [
   { key: "Order Placed", label: "Placed", color: "#94a3b8" },
   { key: "Food Processing", label: "Preparing", color: "#f97316" },
@@ -32,21 +33,39 @@ const getStatusColor = (status = "") => {
   return ORDER_PIPELINE[idx]?.color || "#94a3b8";
 };
 
-// ─── Single Order Card ──────────────────────────────────────────────────────
+const ORDERS_PER_PAGE = 5;
+
+const PAGE_PADDING = {
+  padding: "32px 24px 48px",
+  maxWidth: 960,
+  margin: "0 auto",
+  width: "100%",
+  boxSizing: "border-box",
+};
+
+
 const OrderCard = ({ order, onTrack }) => {
+  const [showTracking, setShowTracking] = useState(false);
   const currentIdx = getStatusIndex(order.status);
   const statusColor = getStatusColor(order.status);
+
+  const handleToggleTracking = () => {
+    if (!showTracking) {
+      onTrack(order._id);
+    }
+    setShowTracking((prev) => !prev);
+  };
 
   return (
     <div
       style={{
         background: "#fff",
         border: "1px solid #e5e7eb",
-        borderRadius: "14px",
-        padding: "18px 20px",
-        boxShadow: "0 4px 18px rgba(0,0,0,0.05)",
+        borderRadius: "12px",
+        padding: "14px 16px",
+        boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
         transition: "transform 0.18s, box-shadow 0.18s",
-        marginBottom: "14px",
+        marginBottom: "12px",
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = "translateY(-2px)";
@@ -58,19 +77,19 @@ const OrderCard = ({ order, onTrack }) => {
       }}
     >
       {/* Top row */}
-      <div style={{ display: "flex", alignItems: "flex-start", gap: "14px" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
         <div
           style={{
             background: "#fff7ed",
-            borderRadius: "10px",
-            padding: "10px",
+            borderRadius: "8px",
+            padding: "8px",
             flexShrink: 0,
           }}
         >
           <img
             src={assets.parcel_icon}
             alt="Order"
-            style={{ width: 40, height: 40, objectFit: "contain" }}
+            style={{ width: 32, height: 32, objectFit: "contain" }}
           />
         </div>
 
@@ -79,9 +98,10 @@ const OrderCard = ({ order, onTrack }) => {
           <p
             style={{
               fontWeight: 600,
-              fontSize: "14px",
+              fontSize: "13px",
               color: "#1f2937",
-              marginBottom: 4,
+              marginBottom: 2,
+              lineHeight: 1.4,
             }}
           >
             {order.items &&
@@ -147,99 +167,115 @@ const OrderCard = ({ order, onTrack }) => {
         </div>
       </div>
 
-      {/* Progress pipeline */}
-      <div style={{ marginTop: 16 }}>
+      {showTracking && (
         <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            position: "relative",
+            marginTop: 12,
+            animation: "myOrdersFadeIn 0.25s ease",
           }}
         >
-          {ORDER_PIPELINE.map((step, idx) => {
-            const isCompleted = idx <= currentIdx;
-            const isCurrent = idx === currentIdx;
-            return (
-              <React.Fragment key={step.key}>
-                {/* Node */}
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    zIndex: 1,
-                    flex: "0 0 auto",
-                  }}
-                >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              position: "relative",
+              overflowX: "auto",
+              paddingBottom: 2,
+            }}
+          >
+            {ORDER_PIPELINE.map((step, idx) => {
+              const isCompleted = idx <= currentIdx;
+              const isCurrent = idx === currentIdx;
+              return (
+                <React.Fragment key={step.key}>
                   <div
                     style={{
-                      width: isCurrent ? 18 : 12,
-                      height: isCurrent ? 18 : 12,
-                      borderRadius: "50%",
-                      background: isCompleted ? step.color : "#e5e7eb",
-                      border: isCurrent
-                        ? `3px solid ${step.color}`
-                        : "2px solid " + (isCompleted ? step.color : "#d1d5db"),
-                      boxShadow: isCurrent
-                        ? `0 0 0 4px ${step.color}22`
-                        : "none",
-                      transition: "all 0.3s",
-                    }}
-                  />
-                  <span
-                    style={{
-                      fontSize: "9px",
-                      marginTop: 4,
-                      color: isCompleted ? step.color : "#9ca3af",
-                      fontWeight: isCurrent ? 700 : 500,
-                      whiteSpace: "nowrap",
-                      textAlign: "center",
-                      maxWidth: 54,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      zIndex: 1,
+                      flex: "0 0 auto",
                     }}
                   >
-                    {step.label}
-                  </span>
-                </div>
-                {/* Connector line */}
-                {idx < ORDER_PIPELINE.length - 1 && (
-                  <div
-                    style={{
-                      flex: 1,
-                      height: 3,
-                      borderRadius: 4,
-                      background:
-                        idx < currentIdx
-                          ? `linear-gradient(to right, ${ORDER_PIPELINE[idx].color}, ${ORDER_PIPELINE[idx + 1].color})`
-                          : "#e5e7eb",
-                      transition: "background 0.4s",
-                      marginBottom: 16,
-                    }}
-                  />
-                )}
-              </React.Fragment>
-            );
-          })}
+                    <div
+                      style={{
+                        width: isCurrent ? 12 : 8,
+                        height: isCurrent ? 12 : 8,
+                        borderRadius: "50%",
+                        background: isCompleted ? step.color : "#e5e7eb",
+                        border: isCurrent
+                          ? `2px solid ${step.color}`
+                          : "1.5px solid " +
+                            (isCompleted ? step.color : "#d1d5db"),
+                        boxShadow: isCurrent
+                          ? `0 0 0 3px ${step.color}22`
+                          : "none",
+                        transition: "all 0.3s",
+                      }}
+                    />
+                    <span
+                      style={{
+                        fontSize: "8px",
+                        marginTop: 3,
+                        color: isCompleted ? step.color : "#9ca3af",
+                        fontWeight: isCurrent ? 700 : 500,
+                        whiteSpace: "nowrap",
+                        textAlign: "center",
+                        maxWidth: 44,
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      {step.label}
+                    </span>
+                  </div>
+                  {idx < ORDER_PIPELINE.length - 1 && (
+                    <div
+                      style={{
+                        flex: 1,
+                        minWidth: 12,
+                        height: 2,
+                        borderRadius: 4,
+                        background:
+                          idx < currentIdx
+                            ? `linear-gradient(to right, ${ORDER_PIPELINE[idx].color}, ${ORDER_PIPELINE[idx + 1].color})`
+                            : "#e5e7eb",
+                        transition: "background 0.4s",
+                        marginBottom: 14,
+                      }}
+                    />
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Track button */}
       <div
-        style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}
+        style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}
       >
         <button
-          onClick={() => onTrack(order._id)}
+          type="button"
+          onClick={handleToggleTracking}
           style={{
-            background: "linear-gradient(135deg, #ff6b35, #f97316)",
-            color: "#fff",
-            border: "none",
-            borderRadius: "8px",
-            padding: "7px 18px",
-            fontSize: "12px",
-            fontWeight: 700,
+            background: showTracking
+              ? "#fff"
+              : "linear-gradient(135deg, #ff6b35, #f97316)",
+            color: showTracking ? "#374151" : "#fff",
+            border: showTracking ? "1px solid #e5e7eb" : "none",
+            borderRadius: "6px",
+            padding: "5px 14px",
+            fontSize: "11px",
+            fontWeight: 700, 
             cursor: "pointer",
             letterSpacing: "0.03em",
-            boxShadow: "0 3px 10px rgba(249,115,22,0.3)",
+            boxShadow: showTracking
+              ? "none"
+              : "0 2px 8px rgba(249,115,22,0.25)",
             transition: "opacity 0.2s, transform 0.15s",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 5,
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.opacity = "0.88";
@@ -250,7 +286,95 @@ const OrderCard = ({ order, onTrack }) => {
             e.currentTarget.style.transform = "scale(1)";
           }}
         >
-          Track Order
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{
+              transform: showTracking ? "rotate(180deg)" : "rotate(0deg)",
+              transition: "transform 0.2s",
+            }}
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+          {showTracking ? "Hide Tracking" : "Show Tracking"}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ─── Pagination ─────────────────────────────────────────────────────────────
+const Pagination = ({ currentPage, totalPages, onPageChange, totalItems }) => {
+  if (totalPages <= 1) return null;
+
+  const start = (currentPage - 1) * ORDERS_PER_PAGE + 1;
+  const end = Math.min(currentPage * ORDERS_PER_PAGE, totalItems);
+
+  const btnStyle = (active, disabled) => ({
+    background: active ? "#f97316" : "#fff",
+    color: active ? "#fff" : disabled ? "#d1d5db" : "#374151",
+    border: active ? "1px solid #f97316" : "1px solid #e5e7eb",
+    borderRadius: 8,
+    padding: "6px 12px",
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: disabled ? "not-allowed" : "pointer",
+    opacity: disabled ? 0.6 : 1,
+    transition: "background 0.15s, color 0.15s",
+  });
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        flexWrap: "wrap",
+        gap: 12,
+        marginTop: 20,
+        paddingTop: 16,
+        borderTop: "1px solid #e5e7eb",
+      }}
+    >
+      <span style={{ fontSize: 12, color: "#6b7280" }}>
+        Showing {start}–{end} of {totalItems} orders
+      </span>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <button
+          type="button"
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          style={btnStyle(false, currentPage === 1)}
+        >
+          Prev
+        </button>
+
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+          <button
+            key={page}
+            type="button"
+            onClick={() => onPageChange(page)}
+            style={btnStyle(page === currentPage, false)}
+          >
+            {page}
+          </button>
+        ))}
+
+        <button
+          type="button"
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          style={btnStyle(false, currentPage === totalPages)}
+        >
+          Next
         </button>
       </div>
     </div>
@@ -263,12 +387,51 @@ const MyOrders = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [lastUpdated, setLastUpdated] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
   const streamRef = useRef(null);
+  const listRef = useRef(null);
+
+  const getOrderDate = (order) =>
+    new Date(order.createdAt || order.date || 0);
+
+  const sortedOrders = useMemo(
+    () =>
+      [...data].sort((a, b) => {
+        const dateA = a.date ? new Date(a.date) : new Date(0);
+        const dateB = b.date ? new Date(b.date) : new Date(0);
+        return dateB - dateA;
+      }),
+    [data],
+  );
+
+  const totalPages = Math.max(1, Math.ceil(sortedOrders.length / ORDERS_PER_PAGE));
+
+  const paginatedOrders = useMemo(() => {
+    const start = (currentPage - 1) * ORDERS_PER_PAGE;
+    return sortedOrders.slice(start, start + ORDERS_PER_PAGE);
+  }, [sortedOrders, currentPage]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const fetchOrders = useCallback(
     async (silent = false) => {
+      if (!url || !token) {
+        const message = "Please log in again to refresh your orders";
+        if (!silent) setError(message);
+        else toast.error(message);
+        return;
+      }
+
       try {
         if (!silent) setLoading(true);
         else setIsRefreshing(true);
@@ -277,18 +440,28 @@ const MyOrders = () => {
         const response = await axios.post(
           url + "/api/order/userorders",
           {},
-          { headers: { token } },
+          {
+            headers: {
+              token,
+              Authorization: `Bearer ${token}`,
+            },
+          },
         );
 
         if (response.data.success) {
           setData(response.data.data || []);
-          setLastUpdated(new Date());
+          if (silent) {
+            toast.success("Orders refreshed");
+          }
         } else {
-          if (!silent)
-            setError(response.data.message || "Failed to fetch orders");
+          const message = response.data.message || "Failed to fetch orders";
+          if (!silent) setError(message);
+          else toast.error(message);
         }
       } catch (err) {
-        if (!silent) setError("Failed to load orders. Please try again.");
+        const message = "Failed to load orders. Please try again.";
+        if (!silent) setError(message);
+        else toast.error(message);
       } finally {
         if (!silent) setLoading(false);
         else setIsRefreshing(false);
@@ -315,7 +488,6 @@ const MyOrders = () => {
           order._id === updatedOrder._id ? updatedOrder : order,
         ),
       );
-      setLastUpdated(new Date());
     });
 
     return () => {
@@ -333,7 +505,7 @@ const MyOrders = () => {
     return (
       <>
         <style>{`@keyframes myOrdersSpin { to { transform: rotate(360deg); } }`}</style>
-        <div style={{ margin: "48px 0" }}>
+        <div style={PAGE_PADDING}>
           <h2
             style={{
               marginBottom: 30,
@@ -372,7 +544,7 @@ const MyOrders = () => {
 
   if (error) {
     return (
-      <div style={{ margin: "48px 0" }}>
+      <div style={PAGE_PADDING}>
         <h2
           style={{
             marginBottom: 30,
@@ -408,7 +580,7 @@ const MyOrders = () => {
         @keyframes myOrdersFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity:1; transform:translateY(0); } }
       `}</style>
 
-      <div style={{ margin: "48px 0" }}>
+      <div style={PAGE_PADDING} ref={listRef}>
         {/* Header */}
         <div
           style={{
@@ -436,91 +608,48 @@ const MyOrders = () => {
             </p>
           </div>
 
-          <div
+          <button
+            onClick={() => fetchOrders(true)}
+            title="Refresh now"
+            disabled={isRefreshing}
             style={{
+              background: isRefreshing ? "#f3f4f6" : "#fff",
+              border: "1px solid #e5e7eb",
+              borderRadius: 8,
+              padding: "6px 12px",
+              cursor: isRefreshing ? "not-allowed" : "pointer",
+              opacity: isRefreshing ? 0.8 : 1,
+              color: "#6b7280",
+              fontSize: 12,
+              fontWeight: 600,
               display: "flex",
               alignItems: "center",
-              gap: 10,
-              flexWrap: "wrap",
+              gap: 5,
+              transition: "background 0.2s",
             }}
           >
-            {/* Live tracking badge */}
-            <span
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
               style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                background: "#f0fdf4",
-                color: "#16a34a",
-                border: "1px solid #bbf7d0",
-                borderRadius: 99,
-                padding: "4px 10px",
-                fontSize: 11,
-                fontWeight: 700,
+                animation: isRefreshing
+                  ? "myOrdersSpin 0.8s linear infinite"
+                  : "none",
               }}
             >
-              <span
-                style={{
-                  width: 7,
-                  height: 7,
-                  borderRadius: "50%",
-                  background: "#22c55e",
-                  display: "inline-block",
-                  animation: "myOrdersPulse 1.8s infinite",
-                }}
-              />
-              Live tracking
-            </span>
-
-            {/* Last updated */}
-            {lastUpdated && (
-              <span style={{ fontSize: 11, color: "#9ca3af" }}>
-                Updated {lastUpdated.toLocaleTimeString()}
-              </span>
-            )}
-
-            {/* Manual refresh */}
-            <button
-              onClick={() => fetchOrders(true)}
-              title="Refresh now"
-              style={{
-                background: isRefreshing ? "#f3f4f6" : "#fff",
-                border: "1px solid #e5e7eb",
-                borderRadius: 8,
-                padding: "6px 12px",
-                cursor: "pointer",
-                color: "#6b7280",
-                fontSize: 12,
-                fontWeight: 600,
-                display: "flex",
-                alignItems: "center",
-                gap: 5,
-                transition: "background 0.2s",
-              }}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="13"
-                height="13"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{
-                  animation: isRefreshing
-                    ? "myOrdersSpin 0.8s linear infinite"
-                    : "none",
-                }}
-              >
-                <polyline points="23 4 23 10 17 10" />
-                <polyline points="1 20 1 14 7 14" />
-                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-              </svg>
-              Refresh
-            </button>
-          </div>
+              <polyline points="23 4 23 10 17 10" />
+              <polyline points="1 20 1 14 7 14" />
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+            </svg>
+            Refresh
+          </button>
         </div>
 
         {/* Orders list */}
@@ -548,13 +677,19 @@ const MyOrders = () => {
           </div>
         ) : (
           <div style={{ animation: "myOrdersFadeIn 0.35s ease" }}>
-            {data.map((order, index) => (
+            {paginatedOrders.map((order, index) => (
               <OrderCard
                 key={order._id || index}
                 order={order}
                 onTrack={handleTrack}
               />
             ))}
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={sortedOrders.length}
+              onPageChange={handlePageChange}
+            />
           </div>
         )}
       </div>
