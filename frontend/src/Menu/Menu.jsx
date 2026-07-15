@@ -3,11 +3,12 @@ import { assets, food_list } from "../assets/assets";
 import ExploreMenu from "../components/ExploreMenu/ExploreMenu";
 
 const headingFontClass = "font-serif";
+const normalizeCategory = (value) => value?.trim().toLowerCase();
 
 const FoodItem = ({ item, quantity, onAdd, onRemove }) => {
   return (
     <article className="group overflow-hidden rounded-[28px] border border-orange-100/80 bg-white shadow-[0_10px_25px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(249,115,22,0.15)]">
-      <div className="relative m-2 aspect-[4/3] overflow-hidden rounded-[20px]">
+      <div className="relative m-2 aspect-4/3 overflow-hidden rounded-[20px]">
         <img
           src={item.image}
           alt={item.name}
@@ -57,7 +58,7 @@ const FoodItem = ({ item, quantity, onAdd, onRemove }) => {
           <img
             src={assets.rating_starts}
             alt="Rating"
-            className="mt-1 h-[14px] w-[70px] shrink-0"
+            className="mt-1 h-3.5 w-17.5 shrink-0"
           />
         </div>
 
@@ -110,7 +111,9 @@ const Menu = () => {
   };
 
   const visibleFoods = food_list.filter(
-    (item) => category === "All" || item.category === category,
+    (item) =>
+      category === "All" ||
+      normalizeCategory(category) === normalizeCategory(item.category),
   );
 
   return (

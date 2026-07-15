@@ -137,7 +137,7 @@ const SupplierManagement = ({ url, adminToken }) => {
         </div>
         <div>
           <h1 className="text-3xl font-extrabold text-zinc-950 dark:text-white tracking-tight">Supplier Management</h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5 font-medium">Manage and track ingredient suppliers</p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5 font-medium">Add new suppliers and manage their information.</p>
         </div>
       </div>
 
@@ -145,7 +145,7 @@ const SupplierManagement = ({ url, adminToken }) => {
         {/* Left: Supplier List */}
         <div className="lg:col-span-8 space-y-6">
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
-            <h2 className="text-xl font-bold mb-4">Supplier Directory</h2>
+            <h2 className="text-xl font-bold mb-4">Registered Supplier</h2>
             
             {loading ? (
               <p className="text-sm text-zinc-550 dark:text-zinc-400 py-6 text-center">Loading suppliers...</p>

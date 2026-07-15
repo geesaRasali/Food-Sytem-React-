@@ -296,11 +296,11 @@ const Categories = ({ url, adminToken }) => {
               </div>
             </div>
 
-            {/* Right Column: Existing Categories List */}
+          
             <div className="lg:col-span-7">
               <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/50 p-6 dark:border-zinc-800 dark:bg-zinc-900/30">
                 <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 mb-5">
-                  Existing categories
+                  New categories
                 </h3>
 
                 {loading ? (

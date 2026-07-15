@@ -22,6 +22,9 @@ const MATERIAL_CATEGORIES = [
   'meat & poultry'
 ];
 
+const normalizeCategory = (value) => String(value || '').trim().toLowerCase();
+const isMaterialCategory = (value) => MATERIAL_CATEGORIES.includes(normalizeCategory(value));
+
 const formatMoney = (value) =>
   new Intl.NumberFormat('en-LK', {
     style: 'currency',
@@ -40,7 +43,7 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
   const [loading, setLoading] = useState(true);
   const [topSellingView, setTopSellingView] = useState('chart'); 
   const [orderPeriod, setOrderPeriod] = useState('today'); // 'today' | 'weekly' | 'monthly'
-  const lowStockThreshold = 5;
+  const lowStockThreshold = 10;
 
   const fetchAllOrders = async () => {
     try {
@@ -360,12 +363,12 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
   const hasInventoryData = foods.some((item) => getStockValue(item) !== null);
   const allLowStockItems = useMemo(() => {
     return foods
-      .filter((item) => item.category && MATERIAL_CATEGORIES.includes(item.category.toLowerCase()))
+      .filter((item) => isMaterialCategory(item.category))
       .map((item) => ({
         ...item,
         stockValue: getStockValue(item),
       }))
-      .filter((item) => item.stockValue !== null && item.stockValue <= lowStockThreshold);
+      .filter((item) => item.stockValue !== null && item.stockValue > 0 && item.stockValue <= lowStockThreshold);
   }, [foods, lowStockThreshold]);
 
   const lowStockItems = useMemo(() => {
@@ -375,15 +378,14 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
   }, [allLowStockItems]);
 
   if (adminUser?.role === 'storekeeper') {
-    const rawMaterials = foods.filter(item => 
-      item.category && MATERIAL_CATEGORIES.includes(item.category.toLowerCase())
-    );
+    const rawMaterials = foods.filter((item) => isMaterialCategory(item.category));
 
     const RAW_INGREDIENTS = rawMaterials.length > 0 ? rawMaterials.map((item) => {
-      let minStock = 10;
-      if (item.category?.toLowerCase().includes('vegetable')) minStock = 15;
-      else if (item.category?.toLowerCase().includes('grain') || item.category?.toLowerCase().includes('flour')) minStock = 30;
-      else if (item.category?.toLowerCase().includes('meat') || item.category?.toLowerCase().includes('seafood')) minStock = 15;
+      let minStock = lowStockThreshold;
+      const normalizedItemCategory = normalizeCategory(item.category);
+      if (normalizedItemCategory.includes('vegetable')) minStock = 15;
+      else if (normalizedItemCategory.includes('grain') || normalizedItemCategory.includes('flour')) minStock = 30;
+      else if (normalizedItemCategory.includes('meat') || normalizedItemCategory.includes('seafood')) minStock = 15;
       
       let expiryDays = null;
       let realExpiryDateStr = 'N/A';
@@ -473,7 +475,7 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
     ];
 
     const totalInventoryItems = RAW_INGREDIENTS.length;
-    const lowStockItemsCount = RAW_INGREDIENTS.filter(item => item.stock > 0 && item.stock < item.minStock).length;
+    const lowStockItemsCount = RAW_INGREDIENTS.filter(item => item.stock > 0 && item.stock <= lowStockThreshold).length;
     const outOfStockItemsCount = RAW_INGREDIENTS.filter(item => item.stock === 0).length;
     const totalSuppliersCount = SUPPLIERS.length;
 
@@ -580,7 +582,7 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
               <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                 {RAW_INGREDIENTS.map((item) => {
                   const isOutOfStock = item.stock === 0;
-                  const isLowStock = item.stock > 0 && item.stock < item.minStock;
+                  const isLowStock = item.stock > 0 && item.stock <= lowStockThreshold;
                   return (
                     <tr key={item._id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/20">
                       <td className="py-3">
@@ -648,12 +650,12 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
               Low Stock Alerts
             </h3>
             <div className="space-y-4">
-              {RAW_INGREDIENTS.filter(item => item.stock < item.minStock).map((item) => (
+              {RAW_INGREDIENTS.filter(item => item.stock > 0 && item.stock <= lowStockThreshold).map((item) => (
                 <div key={item._id} className="p-4 bg-zinc-50 dark:bg-zinc-805/30 border border-zinc-100 dark:border-zinc-800 rounded-2xl flex justify-between items-center gap-4">
                   <div>
                     <h4 className="font-bold text-sm text-zinc-850 dark:text-zinc-200">{item.name}</h4>
                     <p className="text-xs text-zinc-500 mt-1">
-                      Current Quantity: <span className="font-bold text-orange-600">{item.stock} {item.unit}</span> (Min: {item.minStock})
+                      Current Quantity: <span className="font-bold text-orange-600">{item.stock} {item.unit}</span> (Low stock at {lowStockThreshold})
                     </p>
                     <p className="text-[10px] text-zinc-400 mt-0.5">Supplier: {item.supplier}</p>
                   </div>
@@ -668,7 +670,7 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
             </div>
           </div>
 
-          {/* Section 4: Expiry Monitoring */}
+         
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-3xl shadow-xs">
             <h3 className="text-lg font-bold mb-4 pb-2 border-b border-zinc-100 dark:border-zinc-800 text-rose-600">Expiry Monitoring</h3>
             <div className="overflow-x-auto">
@@ -791,7 +793,7 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
                     <td className="py-3 font-bold text-zinc-800 dark:text-zinc-200">{sup.name}</td>
                     <td className="py-3 text-zinc-650 dark:text-zinc-300 font-mono text-xs">{sup.phone}</td>
                     <td className="py-3 text-zinc-505 text-xs font-semibold">{sup.email}</td>
-                    <td className="py-3 text-zinc-505 text-xs truncate max-w-[200px]" title={sup.items}>{sup.items}</td>
+                    <td className="py-3 text-zinc-505 text-xs truncate max-w-50" title={sup.items}>{sup.items}</td>
                     <td className="py-3 text-right">
                       <div className="flex justify-end gap-2">
                         <button 
@@ -1102,7 +1104,7 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
                       <div key={idx} className='flex items-center justify-between gap-2 md:gap-4 xl:gap-2 min-[1350px]:gap-4'>
                         <div className='flex items-center gap-2 min-w-0'>
                           <span className='h-2.5 w-2.5 shrink-0 rounded-full' style={{ backgroundColor: seg.color }} />
-                          <span className='font-semibold text-zinc-750 dark:text-zinc-355 truncate max-w-[100px]' title={seg.name}>{seg.name}</span>
+                          <span className='font-semibold text-zinc-750 dark:text-zinc-355 truncate max-w-25' title={seg.name}>{seg.name}</span>
                         </div>
                         <span className='text-[10px] font-extrabold text-zinc-400 dark:text-zinc-500 shrink-0'>{seg.count} sold</span>
                       </div>
@@ -1119,7 +1121,7 @@ const Dashboard = ({ url, adminToken, adminUser }) => {
                     return (
                       <div key={index} className='space-y-1 text-xs w-full'>
                         <div className='flex items-center justify-between font-semibold'>
-                          <span className='text-zinc-700 dark:text-zinc-300 truncate max-w-[150px]'>{item.name}</span>
+                          <span className='text-zinc-700 dark:text-zinc-300 truncate max-w-37.5'>{item.name}</span>
                           <span className='text-zinc-500 shrink-0'>{item.count} sold</span>
                         </div>
                         <div className='h-2 w-full rounded-full bg-zinc-200/50 dark:bg-zinc-800 overflow-hidden'>

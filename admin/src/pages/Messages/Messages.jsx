@@ -15,6 +15,8 @@ const Messages = ({ url, adminToken }) => {
   const [draftReplies, setDraftReplies] = useState({});
   const [submittingReplies, setSubmittingReplies] = useState({});
   const [activeFilter, setActiveFilter] = useState('All'); // 'All' | 'Pending' | 'Replied'
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 5;
 
   const fetchMessages = useCallback(async () => {
     try {
@@ -44,6 +46,10 @@ const Messages = ({ url, adminToken }) => {
     await fetchMessages();
     toast.success('Messages refreshed');
   };
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeFilter]);
 
   const formatDate = (value) => {
     if (!value) return '';
@@ -94,12 +100,23 @@ const Messages = ({ url, adminToken }) => {
     const isReplied = item.reply && item.reply.trim() !== '';
     if (activeFilter === 'Pending') return !isReplied;
     if (activeFilter === 'Replied') return isReplied;
-    return true; // 'All'
+    return true;
   }).sort((a, b) => {
     const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
     const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
     return dateB - dateA;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filteredMessages.length / pageSize));
+
+  useEffect(() => {
+    setCurrentPage((prevPage) => Math.min(prevPage, totalPages));
+  }, [totalPages]);
+
+  const paginatedMessages = filteredMessages.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   return (
     <section className='min-h-[calc(100vh-4rem)] bg-[#fffbf6] px-6 py-6 dark:bg-zinc-900 font-sans transition-colors duration-200'>
@@ -175,7 +192,7 @@ const Messages = ({ url, adminToken }) => {
           </div>
         ) : (
           <div className='space-y-4'>
-            {filteredMessages.map((item) => {
+            {paginatedMessages.map((item) => {
               const isReplied = item.reply && item.reply.trim() !== '';
 
               return (
@@ -224,7 +241,7 @@ const Messages = ({ url, adminToken }) => {
                   {/* Response display or inline reply editor */}
                   {isReplied ? (
                     <div className='flex items-start gap-2.5 bg-zinc-50/55 dark:bg-zinc-850/30 border border-zinc-200 dark:border-zinc-800 p-4 rounded-xl'>
-                      <FiCornerDownRight className='w-4 h-4 text-zinc-400 mt-0.5 flex-shrink-0' />
+                      <FiCornerDownRight className='w-4 h-4 text-zinc-400 mt-0.5 shrink-0' />
                       <div className='space-y-1'>
                         <span className='text-[9px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block'>
                           Admin Response
@@ -264,6 +281,38 @@ const Messages = ({ url, adminToken }) => {
                 </article>
               );
             })}
+          </div>
+        )}
+
+        {filteredMessages.length > pageSize && (
+          <div className='flex items-center justify-between gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-3 shadow-xs dark:border-zinc-800 dark:bg-zinc-900'>
+            <p className='text-xs font-semibold text-zinc-500 dark:text-zinc-400'>
+              Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, filteredMessages.length)} of {filteredMessages.length} messages
+            </p>
+
+            <div className='flex items-center gap-2'>
+              <button
+                type='button'
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className='rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-bold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900'
+              >
+                Previous
+              </button>
+
+              <span className='text-xs font-bold text-zinc-600 dark:text-zinc-300'>
+                Page {currentPage} of {totalPages}
+              </span>
+
+              <button
+                type='button'
+                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className='rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-bold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900'
+              >
+                Next
+              </button>
+            </div>
           </div>
         )}
       </div>

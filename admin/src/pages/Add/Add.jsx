@@ -5,27 +5,44 @@ import { toast } from 'react-toastify'
 import { FiUpload, FiPlusCircle, FiInfo } from 'react-icons/fi'
 import { useLocation, useNavigate } from 'react-router-dom'
 
+const defaultCategories = ['Salad', 'Rolls', 'Deserts', 'Sandwich', 'Cake', 'Pure Veg', 'Pasta', 'Noodles', 'Koththu']
+
+const normalizeCategories = (items) => {
+    if (!Array.isArray(items)) return []
+
+    return items
+        .map((cat) => {
+            if (typeof cat === 'string') return cat.trim()
+            if (cat && typeof cat === 'object') return String(cat.name || '').trim()
+            return ''
+        })
+        .filter(Boolean)
+}
+
+const mergeCategories = (...groups) => {
+    const seen = new Set()
+    const merged = []
+
+    groups.forEach((group) => {
+        normalizeCategories(group).forEach((category) => {
+            const key = category.toLowerCase()
+            if (!seen.has(key)) {
+                seen.add(key)
+                merged.push(category)
+            }
+        })
+    })
+
+    return merged
+}
+
 const Add = ({ url, adminToken }) => {
     const [image, setImage] = useState(false)
     const location = useLocation()
     const navigate = useNavigate()
     const editingFood = location.state?.food || null
 
-    // Load categories from localStorage dynamically
-    const categoriesList = (() => {
-        const saved = localStorage.getItem('foodCategories')
-        if (saved) {
-            try {
-                const parsed = JSON.parse(saved)
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    return parsed.map((cat) => cat.name)
-                }
-            } catch (e) {
-                console.error('Failed to parse categories in Add.jsx', e)
-            }
-        }
-        return ['Salad', 'Rolls', 'Deserts', 'Sandwich', 'Cake', 'Pure Veg', 'Pasta', 'Noodles', 'Koththu']
-    })()
+    const [categoriesList, setCategoriesList] = useState(defaultCategories)
 
     const [suppliersList, setSuppliersList] = useState([])
     const [data, setData] = useState({
@@ -35,6 +52,46 @@ const Add = ({ url, adminToken }) => {
         category: editingFood ? editingFood.category : (categoriesList[0] || 'Salad'),
         supplier: editingFood ? (editingFood.supplier || '') : '',
     })
+
+    useEffect(() => {
+        const loadCategories = async () => {
+            let backendCategories = []
+
+            try {
+                const response = await axios.get(`${url}/api/food/category/list`)
+                if (response.data.success) {
+                    backendCategories = response.data.data || []
+                }
+            } catch (error) {
+                console.error('Failed to fetch categories in Add.jsx', error)
+            }
+
+            let savedCategories = []
+            const saved = localStorage.getItem('foodCategories')
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved)
+                    savedCategories = parsed
+                } catch (error) {
+                    console.error('Failed to parse categories in Add.jsx', error)
+                }
+            }
+
+            const combinedCategories = mergeCategories(defaultCategories, savedCategories, backendCategories)
+            setCategoriesList(combinedCategories.length > 0 ? combinedCategories : defaultCategories)
+
+            if (combinedCategories.length > 0) {
+                localStorage.setItem(
+                    'foodCategories',
+                    JSON.stringify(combinedCategories.map((name) => ({ name }))),
+                )
+            }
+        }
+
+        if (url) {
+            loadCategories()
+        }
+    }, [url])
 
     useEffect(() => {
         const fetchSuppliers = async () => {
@@ -70,7 +127,16 @@ const Add = ({ url, adminToken }) => {
                 supplier: '',
             }))
         }
-    }, [editingFood])
+    }, [editingFood, categoriesList])
+
+    useEffect(() => {
+        if (!editingFood && categoriesList.length > 0 && !categoriesList.includes(data.category)) {
+            setData((prev) => ({
+                ...prev,
+                category: categoriesList[0],
+            }))
+        }
+    }, [categoriesList, editingFood, data.category])
 
     const onChangeHandler = (event) => {
         const name = event.target.name
@@ -122,7 +188,7 @@ const Add = ({ url, adminToken }) => {
                 <div className='mb-8 flex flex-col md:flex-row md:items-center md:justify-between'>
                     <div>
                         <h1 className='text-3xl font-black tracking-tight text-zinc-900 dark:text-zinc-100'>
-                            Menu Management
+                           Add Item
                         </h1>
                         <p className='text-zinc-500'>Add a new culinary masterpiece to your menu.</p>
                     </div>

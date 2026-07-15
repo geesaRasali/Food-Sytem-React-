@@ -37,10 +37,27 @@ const ORDERS_PER_PAGE = 5;
 
 const PAGE_PADDING = {
   padding: "32px 24px 48px",
-  maxWidth: 960,
+  maxWidth: 1120,
   margin: "0 auto",
   width: "100%",
   boxSizing: "border-box",
+};
+
+const formatOrderDateTime = (value) => {
+  const date = new Date(value || 0);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const day = new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+  const time = new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+
+  return `${day} • ${time}`;
 };
 
 
@@ -59,49 +76,59 @@ const OrderCard = ({ order, onTrack }) => {
   return (
     <div
       style={{
-        background: "#fff",
-        border: "1px solid #e5e7eb",
-        borderRadius: "12px",
-        padding: "14px 16px",
-        boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
+        background: "linear-gradient(180deg, #ffffff 0%, #fffdf9 100%)",
+        border: "1px solid #e7e5e4",
+        borderRadius: "16px",
+        padding: "14px 15px 13px",
+        boxShadow: "0 8px 24px rgba(15, 23, 42, 0.05)",
         transition: "transform 0.18s, box-shadow 0.18s",
-        marginBottom: "12px",
+        marginBottom: "10px",
+        overflow: "hidden",
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = "translateY(-2px)";
-        e.currentTarget.style.boxShadow = "0 8px 28px rgba(0,0,0,0.09)";
+        e.currentTarget.style.boxShadow = "0 14px 34px rgba(15,23,42,0.08)";
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = "translateY(0)";
-        e.currentTarget.style.boxShadow = "0 4px 18px rgba(0,0,0,0.05)";
+        e.currentTarget.style.boxShadow = "0 8px 24px rgba(15, 23, 42, 0.05)";
       }}
     >
-      {/* Top row */}
-      <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "auto minmax(0, 1fr) auto",
+          columnGap: 12,
+          rowGap: 8,
+          alignItems: "start",
+        }}
+      >
         <div
           style={{
-            background: "#fff7ed",
-            borderRadius: "8px",
+            background: "linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)",
+            borderRadius: "12px",
             padding: "8px",
             flexShrink: 0,
+            border: "1px solid #fed7aa",
+            gridRow: "1 / span 2",
           }}
         >
           <img
             src={assets.parcel_icon}
             alt="Order"
-            style={{ width: 32, height: 32, objectFit: "contain" }}
+            style={{ width: 28, height: 28, objectFit: "contain" }}
           />
         </div>
 
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {/* Items list */}
+        <div style={{ minWidth: 0 }}>
           <p
             style={{
-              fontWeight: 600,
-              fontSize: "13px",
-              color: "#1f2937",
-              marginBottom: 2,
-              lineHeight: 1.4,
+              fontWeight: 900,
+              fontSize: "15px",
+              color: "#0f172a",
+              margin: 0,
+              lineHeight: 1.25,
+              letterSpacing: "-0.01em",
             }}
           >
             {order.items &&
@@ -111,40 +138,57 @@ const OrderCard = ({ order, onTrack }) => {
               )}
           </p>
 
-          {/* Amount + item count */}
           <div
             style={{
               display: "flex",
+              alignItems: "baseline",
+              gap: 10,
+              marginTop: 5,
               flexWrap: "wrap",
-              gap: "10px",
-              marginTop: 4,
             }}
           >
             <span
-              style={{ fontSize: "13px", color: "#374151", fontWeight: 700 }}
+              style={{ fontSize: "21px", color: "#111827", fontWeight: 900 }}
             >
               LKR {Number(order.amount || 0).toLocaleString()}.00
             </span>
-            <span style={{ fontSize: "12px", color: "#6b7280" }}>
+            <span style={{ fontSize: "12px", color: "#6b7280", fontWeight: 600 }}>
               {order.items ? order.items.length : 0} item
               {order.items?.length !== 1 ? "s" : ""}
             </span>
           </div>
+
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 4,
+              marginTop: 8,
+              fontSize: "12px",
+              color: "#6b7280",
+            }}
+          >
+            <span style={{ fontWeight: 700, color: "#374151" }}>
+              Order #{String(order._id || "").slice(-6).toUpperCase()}
+            </span>
+            <span style={{ fontWeight: 600 }}>
+              {formatOrderDateTime(order.createdAt || order.date)}
+            </span>
+          </div>
         </div>
 
-        {/* Status badge */}
-        <div style={{ flexShrink: 0, textAlign: "right" }}>
+        <div style={{ textAlign: "right" }}>
           <span
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: "5px",
+              gap: "6px",
               background: statusColor + "18",
               color: statusColor,
-              borderRadius: "99px",
-              padding: "4px 10px",
-              fontSize: "11px",
-              fontWeight: 700,
+              borderRadius: "999px",
+              padding: "7px 12px",
+              fontSize: "12px",
+              fontWeight: 800,
               border: `1px solid ${statusColor}33`,
               whiteSpace: "nowrap",
             }}
@@ -251,9 +295,7 @@ const OrderCard = ({ order, onTrack }) => {
         </div>
       )}
 
-      <div
-        style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}
-      >
+      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
         <button
           type="button"
           onClick={handleToggleTracking}
@@ -263,10 +305,10 @@ const OrderCard = ({ order, onTrack }) => {
               : "linear-gradient(135deg, #ff6b35, #f97316)",
             color: showTracking ? "#374151" : "#fff",
             border: showTracking ? "1px solid #e5e7eb" : "none",
-            borderRadius: "6px",
-            padding: "5px 14px",
-            fontSize: "11px",
-            fontWeight: 700, 
+            borderRadius: "999px",
+            padding: "7px 14px",
+            fontSize: "12px",
+            fontWeight: 700,
             cursor: "pointer",
             letterSpacing: "0.03em",
             boxShadow: showTracking
@@ -276,6 +318,11 @@ const OrderCard = ({ order, onTrack }) => {
             display: "inline-flex",
             alignItems: "center",
             gap: 5,
+            minWidth: 118,
+            justifyContent: "center",
+            boxShadow: showTracking
+              ? "none"
+              : "0 6px 16px rgba(249,115,22,0.18)",
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.opacity = "0.88";
@@ -303,7 +350,7 @@ const OrderCard = ({ order, onTrack }) => {
           >
             <polyline points="6 9 12 15 18 9" />
           </svg>
-          {showTracking ? "Hide Tracking" : "Show Tracking"}
+          {showTracking ? "Hide Tracking" : "Track Order"}
         </button>
       </div>
     </div>
@@ -506,7 +553,7 @@ const MyOrders = () => {
       <>
         <style>{`@keyframes myOrdersSpin { to { transform: rotate(360deg); } }`}</style>
         <div style={PAGE_PADDING}>
-          <h2
+          <h1
             style={{
               marginBottom: 30,
               fontSize: 24,
@@ -515,7 +562,7 @@ const MyOrders = () => {
             }}
           >
             My Orders
-          </h2>
+          </h1>
           <div
             style={{
               textAlign: "center",
@@ -595,15 +642,16 @@ const MyOrders = () => {
           <div>
             <h2
               style={{
-                fontSize: 26,
+                  fontSize: 34,
                 fontWeight: 800,
                 color: "#111827",
                 margin: 0,
+                
               }}
             >
               My Orders
             </h2>
-            <p style={{ margin: "4px 0 0", fontSize: 13, color: "#6b7280" }}>
+            <p style={{ margin: "4px 0 0", fontSize: 15, color: "#6b7280" }}>
               Track all your orders in real-time
             </p>
           </div>

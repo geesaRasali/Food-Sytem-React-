@@ -30,7 +30,7 @@ const AddMaterial = ({ url, adminToken }) => {
         category: materialCategories[0],
         supplier: '',
         quantity: '',
-        unit: 'kg',
+        unit: 'Units',
         expiryDate: ''
     })
 
@@ -99,7 +99,7 @@ const AddMaterial = ({ url, adminToken }) => {
                     category: materialCategories[0],
                     supplier: suppliersList[0]?.name || '',
                     quantity: '',
-                    unit: 'kg',
+                    unit: 'Units',
                     expiryDate: ''
                 })
                 setImage(false)

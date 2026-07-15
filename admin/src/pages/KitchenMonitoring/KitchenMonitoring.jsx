@@ -34,7 +34,7 @@ const formatMoney = (value) =>
   new Intl.NumberFormat("en-LK", {
     style: "currency",
     currency: "LKR",
-    maximumFractionDigits: 0,
+    maximumFrraDigits: 0,
   }).format(value || 0);
 
 const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
@@ -336,7 +336,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
       });
   }, [activeOrders]);
 
-  // Get completed orders for history view
+
   const completedOrders = useMemo(() => {
     return activeOrders
       .map((order) => {
@@ -1182,6 +1182,15 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
           {isKitchenStaffUser && (
             <div className="flex border-b border-zinc-200 dark:border-zinc-800 mb-8 overflow-x-auto pb-px">
               {[
+                  {
+                  id: "All",
+                  label: "All Active Orders",
+                  count:
+                    summaryMetrics.preparingCount +
+                    summaryMetrics.todayOrdersCount -
+                    summaryMetrics.readyCount,
+                  countColor: "bg-zinc-500",
+                },
                 {
                   id: "My Orders",
                   label: "My Assigned Orders",
@@ -1194,15 +1203,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
                   count: summaryMetrics.unassignedCount,
                   countColor: "bg-red-500",
                 },
-                {
-                  id: "All",
-                  label: "All Active Orders",
-                  count:
-                    summaryMetrics.preparingCount +
-                    summaryMetrics.todayOrdersCount -
-                    summaryMetrics.readyCount,
-                  countColor: "bg-zinc-500",
-                },
+               
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -1298,7 +1299,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
                   <thead>
                     <tr className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 text-xs font-black uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                       <th className="p-4 rounded-l-2xl">Order ID</th>
-                      <th className="p-4">Priority & Info</th>
+                      <th className="p-4">Preparation Time</th>
                       <th className="p-4">Customer & Dishes</th>
                       <th className="p-4">Chef Assignment</th>
                       <th className="p-4">Status</th>
@@ -1318,18 +1319,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
                           </div>
                         </td>
                         <td className="p-4">
-                          <span
-                            className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
-                              order.priority === "High"
-                                ? "bg-red-50 text-red-600 dark:bg-red-950/20 dark:text-red-400"
-                                : order.priority === "Medium"
-                                  ? "bg-orange-50 text-orange-600 dark:bg-orange-950/20 dark:text-orange-400"
-                                  : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
-                            }`}
-                          >
-                            {order.priority}
-                          </span>
-                          <div className="flex items-center gap-1.5 text-zinc-500 mt-2 text-xs font-bold">
+                          <div className="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300 text-xs font-bold">
                              <FiClock className="w-3.5 h-3.5 text-zinc-400" />
                              <span>{order.estPrepTime}</span>
                           </div>
@@ -1450,7 +1440,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
                                    </button>
                                  )}
                                  {order.workflowState === "Ready for Pickup" && (
-                                    <span className="text-xs font-bold text-emerald-500 text-center py-1.5">Completed</span>
+                                    <span className="text-xs font-bold text-black-500 text-center py-1.5">Sent to Delivery</span>
                                  )}
                                </>
                              )}

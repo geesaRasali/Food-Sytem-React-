@@ -2,6 +2,8 @@ import React, { useContext } from "react";
 import { StoreContext } from "../../context/StoreContext";
 import FoodItem from "../FoodItem/FoodItem";
 
+const normalizeCategory = (value) => value?.trim().toLowerCase();
+
 const FoodDisplay = ({ category }) => {
   const { food_list } = useContext(StoreContext);
 
@@ -16,7 +18,10 @@ const FoodDisplay = ({ category }) => {
       <div className="mt-0 grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-4.5 min-[1200px]:grid-cols-5">
         {food_list && food_list.length > 0 ? (
           food_list.map((item) => {
-            if (category === "All" || category === item.category) {
+            if (
+              category === "All" ||
+              normalizeCategory(category) === normalizeCategory(item.category)
+            ) {
               return (
                 <FoodItem
                   key={item._id}

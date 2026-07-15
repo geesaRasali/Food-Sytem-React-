@@ -568,8 +568,8 @@ const SupplyHistory = ({ url, adminToken }) => {
 
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
         <div className="mb-6">
-          <h2 className="text-2xl font-black tracking-tight">Incoming Supply Logs</h2>
-          <p className="text-xs text-zinc-550 dark:text-zinc-400 mt-0.5">Historical records of stock supplies received from supplier networks.</p>
+          <h2 className="text-2xl font-black tracking-tight"> Supply History</h2>
+          <p className="text-xs text-zinc-550 dark:text-zinc-400 mt-0.5">View the history of all supplied inventory items.</p>
         </div>
 
         {loading ? (
