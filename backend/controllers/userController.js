@@ -53,7 +53,7 @@ const mapGoogleAuthError = (error) => {
     return `Google login failed: ${rawMessage}`;
 }
 
-//create token
+
 const createToken = (id) => {
     return jwt.sign({id}, process.env.JWT_SECRET)
 }
@@ -94,7 +94,7 @@ const createUniqueUsername = async (name, email) => {
     return username;
 }
 
-// ================= PROFILE =================
+ 
 const getUserProfile = async (req, res) => {
     try {
         const userId = req.userId || req.body.userId;
@@ -114,7 +114,7 @@ const getUserProfile = async (req, res) => {
     }
 }
 
-// ================= UPDATE PROFILE =================
+
 const updateUserProfile = async (req, res) => {
     try {
         const userId = req.userId || req.body.userId;
@@ -194,7 +194,7 @@ const updateUserProfile = async (req, res) => {
     }
 }
 
-// ================= LOGIN =================
+
 const loginUser = async (req, res) => {
     const { username, password } = req.body;
 
@@ -236,7 +236,7 @@ const loginUser = async (req, res) => {
     }
 }
 
-// ================= REGISTER =================
+
 const registerUser = async (req, res) => {
     const { name, email, username, password } = req.body;
     try {
@@ -248,7 +248,7 @@ const registerUser = async (req, res) => {
             return res.json({ success: false, message: "Please fill all required fields" });
         }
 
-        // check existing user
+      
         const exists = await userModel.findOne({
             $or: [{ username: normalizedUsername }, { email: normalizedEmail }]
         });
@@ -261,12 +261,12 @@ const registerUser = async (req, res) => {
             return res.json({ success: false, message: "Please enter a valid email" });
         }
 
-        // password validation
+      
         if (password.length < 6) {
             return res.json({ success: false, message: "Password must be at least 6 characters" });
         }
 
-        // hash password
+      
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -306,7 +306,7 @@ const registerUser = async (req, res) => {
     }
 }
 
-// ================= GOOGLE LOGIN (CUSTOMER ONLY) =================
+
 const googleLoginUser = async (req, res) => {
     try {
         const { credential } = req.body;
@@ -384,7 +384,6 @@ const googleLoginUser = async (req, res) => {
     }
 }
 
-// ================= ADMIN STAFF MANAGEMENT =================
 const listStaffUsers = async (req, res) => {
     try {
         const users = await userModel

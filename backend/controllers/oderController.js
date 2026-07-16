@@ -55,12 +55,12 @@ const placeOrder = async (req, res) => {
         product_data: {
           name: item.name, // Product name
         },
-        unit_amount: Number(item.price) * 100, // Price in cents (Stripe requirement)
+        unit_amount: Number(item.price) * 100, 
       },
-      quantity: item.quantity, // How many items
+      quantity: item.quantity, 
     }));
 
-    // Add delivery charges as separate line item only when applicable
+    //*delivery charge part 
     if (deliveryFee > 0) {
       line_items.push({
         price_data: {
@@ -68,16 +68,16 @@ const placeOrder = async (req, res) => {
           product_data: {
             name: "Delivery Charges",
           },
-          unit_amount: deliveryFee * 100, // Delivery fee
+          unit_amount: deliveryFee * 100, 
         },
         quantity: 1,
       });
     }
 
-    // Create Stripe checkout session
+    
     const session = await stripe.checkout.sessions.create({
-      line_items: line_items, // What customer is buying
-      mode: "payment", // One-time payment
+      line_items: line_items,
+      mode: "payment", 
       success_url: `${frontend_url}/verify?success=true&orderId=${newOrder._id}`,
       cancel_url: `${frontend_url}/verify?success=false&orderId=${newOrder._id}`,
     });
@@ -146,10 +146,10 @@ const verifyOrder = async (req, res) => {
   }
 };
 
-//user orders for frontend
+
 const userOrders = async (req, res) => {
   try {
-    // Get userId from req.body (set by authMiddleware)
+   
     const userId = req.userId || req.body.userId;
 
     if (!userId) {
@@ -164,7 +164,7 @@ const userOrders = async (req, res) => {
   }
 };
 
-// List orders for admin panel
+
 const listOrders = async (req, res) => {
   try {
     const orders = await orderModel.find({}).sort({ date: -1 });

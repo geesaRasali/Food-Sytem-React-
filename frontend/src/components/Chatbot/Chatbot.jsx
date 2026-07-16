@@ -7,7 +7,7 @@ const Chatbot = () => {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
-  // Auto-scroll to latest message
+  
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -19,7 +19,7 @@ const Chatbot = () => {
     setInputText('');
     setIsLoading(true);
 
-    // Add user message to chat
+    
     const userMessage = { role: 'user', content: text, id: Date.now().toString() };
     setMessages((prev) => [...prev, userMessage]);
 

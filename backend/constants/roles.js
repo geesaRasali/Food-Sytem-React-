@@ -5,7 +5,7 @@ export const USER_ROLES = {
   STOREKEEPER: "storekeeper",
   KITCHEN_STAFF: "kitchen staff",
   DELIVERY_STAFF: "delivery staff",
-  // Legacy value kept for backward compatibility with existing users.
+  
   STAFF: "staff",
 };
 

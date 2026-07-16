@@ -18,7 +18,7 @@ const materialCategories = [
   'Baking & Sweeteners'
 ]
 
-// 1. Grid Portal View (Default)
+
 const StockControlGrid = () => {
   const navigate = useNavigate()
 
@@ -225,7 +225,7 @@ const StockList = ({ url, adminToken }) => {
                         )}
                       </td>
 
-                      {/* Quantity Cell */}
+                      
                       <td className="py-3">
                         {editingId === item._id ? (
                           <div className="flex items-center gap-1 animate-fadeIn">
@@ -242,7 +242,7 @@ const StockList = ({ url, adminToken }) => {
                         )}
                       </td>
 
-                      {/* Expiry Date Cell */}
+                    
                       <td className="py-3">
                         {editingId === item._id ? (
                           <div className="flex items-center gap-1 animate-fadeIn">
@@ -260,7 +260,7 @@ const StockList = ({ url, adminToken }) => {
                         )}
                       </td>
 
-                      {/* Status Cell */}
+                     
                       <td className="py-3">
                         <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-extrabold uppercase tracking-wider ${
                           stock === 0 
@@ -273,7 +273,7 @@ const StockList = ({ url, adminToken }) => {
                         </span>
                       </td>
 
-                      {/* Actions Cell */}
+                   
                       <td className="py-3 pr-2 text-right">
                         {editingId === item._id ? (
                           <div className="flex items-center justify-end gap-1.5 animate-fadeIn">
@@ -326,7 +326,7 @@ const StockList = ({ url, adminToken }) => {
   )
 }
 
-// 4. Kitchen Transfer Component
+// Kitchen Transfer Component
 const KitchenTransferList = ({ url, adminToken }) => {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -490,7 +490,7 @@ const KitchenTransferList = ({ url, adminToken }) => {
         )}
       </div>
 
-      {/* 2. Kitchen Stock Transfers History Log */}
+      {/* Kitchen Stock Transfers History */}
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
         <div className="mb-6">
           <h2 className="text-xl font-black tracking-tight">Kitchen Stock Transfers History</h2>
@@ -538,7 +538,7 @@ const KitchenTransferList = ({ url, adminToken }) => {
   )
 }
 
-// 5. Supply History Component
+//Supply History Component
 const SupplyHistory = ({ url, adminToken }) => {
   const navigate = useNavigate()
   const [supplies, setSupplies] = useState([])
@@ -609,10 +609,9 @@ const SupplyHistory = ({ url, adminToken }) => {
   )
 }
 
-// 6. Main Component — uses location-based rendering (avoids nested Routes matching issues)
 const StockControl = ({ url, adminToken }) => {
   const location = useLocation()
-  const subPath = location.pathname.replace(/^\/stock-control\/?/, '') // e.g. 'stock-list'
+  const subPath = location.pathname.replace(/^\/stock-control\/?/, '') 
 
   if (subPath === 'add-supplier') {
     return <SupplierManagement url={url} adminToken={adminToken} />
@@ -629,7 +628,7 @@ const StockControl = ({ url, adminToken }) => {
   if (subPath === 'supply-history') {
     return <SupplyHistory url={url} adminToken={adminToken} />
   }
-  // Default: show the grid portal
+  
   return <StockControlGrid />
 }
 

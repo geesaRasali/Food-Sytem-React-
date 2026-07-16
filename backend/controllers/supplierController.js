@@ -1,6 +1,6 @@
 import supplierModel from "../models/supplierModel.js";
 
-// Add supplier
+
 const addSupplier = async (req, res) => {
   const { name, phone, email, address } = req.body;
 
@@ -23,7 +23,7 @@ const addSupplier = async (req, res) => {
   }
 };
 
-// List suppliers
+
 const listSuppliers = async (req, res) => {
   try {
     const suppliers = await supplierModel.find({});
@@ -34,7 +34,7 @@ const listSuppliers = async (req, res) => {
   }
 };
 
-// Update supplier
+
 const updateSupplier = async (req, res) => {
   const { id, name, phone, email, address } = req.body;
 
@@ -67,7 +67,7 @@ const updateSupplier = async (req, res) => {
   }
 };
 
-// Remove supplier
+
 const removeSupplier = async (req, res) => {
   const { id } = req.body;
 

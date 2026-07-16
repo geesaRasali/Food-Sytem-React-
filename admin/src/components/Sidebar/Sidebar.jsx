@@ -75,7 +75,8 @@ const Sidebar = ({ adminUser, pendingMessagesCount = 0 }) => {
   const isStockControlActive = location.pathname.startsWith("/stock-control");
 
   return (
-    <aside className="fixed top-16 left-0 z-30 h-[calc(100vh-4rem)] w-[18%] bg-white text-zinc-650 border-r border-zinc-200 dark:bg-[#0b090c] dark:text-[#a099b0] dark:border-[#1a1722] flex flex-col justify-between overflow-y-auto select-none font-sans scrollbar-thin scrollbar-thumb-zinc-200 dark:scrollbar-thumb-zinc-800">
+    <aside className="fixed top-16 left-0 z-30 h-[calc(100vh-4rem)] w-[18%] bg-white text-zinc-650 border-r border-zinc-200 dark:bg-[#0b090c] dark:text-[#a099b0] dark:border-[#1a1722] flex flex-col justify-between 
+    overflow-y-auto select-none font-sans scrollbar-thin scrollbar-thumb-zinc-200 dark:scrollbar-thumb-zinc-800">
       
       <div className="p-5 flex justify-center items-center border-b border-orange-100 bg-[#fffcf9] dark:border-[#1a1722] dark:bg-[#0e0c12]">
         <img
@@ -405,7 +406,7 @@ const Sidebar = ({ adminUser, pendingMessagesCount = 0 }) => {
           </div>
         )}
 
-        {/* SECTION 3: ADMINISTRATION */}
+       
         {(showStaffUsers || showMessages || showReports || showSettings) && (
           <div className="space-y-1.5">
             <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-[#635c72]">

@@ -57,7 +57,7 @@ const Navbar = ({ adminUser, onLogout, isDarkMode, onToggleDarkMode }) => {
     ${isDarkMode ? "bg-slate-800 ring-1 ring-slate-700" : "bg-orange-100 ring-1 ring-orange-200"}
   `}
 >
-  {/* Round white circle */}
+ 
   <div
     className={`
       z-10 w-6 h-6 bg-white rounded-full shadow-lg

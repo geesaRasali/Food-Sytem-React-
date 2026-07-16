@@ -15,7 +15,7 @@ chatRouter.post("/", async (req, res) => {
 
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-    // Convert UI messages to Generative AI format
+    
     const history = messages
       .filter((msg) => msg.role === "user" || msg.role === "assistant")
       .map((msg) => ({
@@ -74,7 +74,6 @@ Response Guidelines:
       const text = chunk.text();
       res.write(`data: ${JSON.stringify({ content: text })}\n\n`);
     }
-
     res.write("data: [DONE]\n\n");
     res.end();
   } catch (error) {

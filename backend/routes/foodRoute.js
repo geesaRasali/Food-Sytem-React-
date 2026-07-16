@@ -20,7 +20,6 @@ import { FOOD_WRITE_ROLES } from "../constants/roles.js";
 
 const foodRouter = express.Router();
 
-//Image Storage Engine
 
 const storage = multer.diskStorage({
   destination: "images",
@@ -31,7 +30,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// Food routes
+//food 
 foodRouter.post("/add", authMiddleware, requireRoles(...FOOD_WRITE_ROLES), upload.single("image"), addFood);
 foodRouter.post("/update", authMiddleware, requireRoles(...FOOD_WRITE_ROLES), upload.single("image"), updateFood);
 foodRouter.get("/list", listFood);
@@ -41,7 +40,7 @@ foodRouter.get("/supplies", listSupplies);
 foodRouter.post("/transfers/add", authMiddleware, requireRoles(...FOOD_WRITE_ROLES), addTransfer);
 foodRouter.get("/transfers", listTransfers);
 
-// Category routes
+//categery 
 foodRouter.post("/category/add", authMiddleware, requireRoles(...FOOD_WRITE_ROLES), upload.single("image"), addCategory);
 foodRouter.get("/category/list", listCategories);
 foodRouter.post("/category/update", authMiddleware, requireRoles(...FOOD_WRITE_ROLES), upload.single("image"), updateCategory);

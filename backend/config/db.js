@@ -7,7 +7,7 @@ export const connectDB = async () => {
 		await mongoose.connect(databaseUrl);
 		console.log("db connected");
 		
-		// Drop non-default indexes on transfers collection to clear any accidental unique constraints
+		
 		try {
 			const transfersCollection = mongoose.connection.collection('transfers');
 			if (transfersCollection) {
@@ -15,7 +15,7 @@ export const connectDB = async () => {
 				console.log("transfers collection indexes cleared");
 			}
 		} catch (idxErr) {
-			// Index might not exist or collection is empty, which is fine
+			
 			console.log("No indexes to clear or collection not initialized yet");
 		}
 	} catch (error) {

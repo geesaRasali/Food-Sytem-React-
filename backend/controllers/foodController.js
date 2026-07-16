@@ -136,7 +136,7 @@ const addFood = async (req, res) => {
   try {
     await food.save();
 
-    // Log initial supply in transactions history
+    
     if (food.quantity > 0 && food.supplier) {
       const supply = new supplyModel({
         materialId: food._id,
@@ -203,7 +203,7 @@ const updateFood = async (req, res) => {
       runValidators: true,
     });
 
-    // Log supply update
+    
     const diff = Number(req.body.quantity || 0) - Number(existingFood.quantity || 0);
     if (diff > 0 && updatedFood.supplier) {
       const supply = new supplyModel({
@@ -234,10 +234,10 @@ const removeFood = async (req, res) => {
 
     await foodModel.findByIdAndDelete(req.body.id);
     
-    // Clean supply logs from DB
+    // delete supply logs from DB
     await supplyModel.deleteMany({ materialId: req.body.id });
     
-    // Clean kitchen transfer loging
+    // delete kitchen transfer logs
     await transferModel.deleteMany({ materialId: req.body.id });
 
     res.json({ success: true, message: "Food Removed" });
@@ -273,7 +273,7 @@ const getFoodByCategory = async (req, res) => {
   }
 };
 
-// stock quantity
+
 const addStockQuantity = async (req, res) => {
   const { id, quantity } = req.body;
   if (!id || quantity === undefined) {
@@ -310,7 +310,7 @@ const addStockQuantity = async (req, res) => {
   }
 };
 
-// Fetch supply 
+
 const listSupplies = async (req, res) => {
   try {
     const activeFoods = await foodModel.find({}, { _id: 1 });
@@ -323,7 +323,7 @@ const listSupplies = async (req, res) => {
   }
 };
 
-// 
+
 const addTransfer = async (req, res) => {
   const { materialId, quantity, recipientSection } = req.body;
   if (!materialId || !quantity || !recipientSection) {
@@ -346,7 +346,6 @@ const addTransfer = async (req, res) => {
       return res.json({ success: false, message: "Insufficient stock quantity" });
     }
 
-    // Decrement stock in food model
     food.quantity = currentStock - qtyToMove;
     await food.save();
 
@@ -429,7 +428,7 @@ const addCategory = async (req, res) => {
   }
 };
 
-/** List all categories */
+
 const listCategories = async (req, res) => {
   try {
     const categories = await categoryModel.find({}).sort({ createdAt: 1 });
@@ -440,7 +439,7 @@ const listCategories = async (req, res) => {
   }
 };
 
-/** Update a category name and/or image */
+
 const updateCategory = async (req, res) => {
   try {
     const { id, name } = req.body;
@@ -469,7 +468,7 @@ const updateCategory = async (req, res) => {
     }
 
     if (req.file) {
-      // Delete old image 
+      
       if (category.image) fs.unlink(`images/${category.image}`, () => {});
       category.image = req.file.filename;
     }
@@ -482,7 +481,7 @@ const updateCategory = async (req, res) => {
   }
 };
 
-/** Delete a category and its image */
+
 const deleteCategory = async (req, res) => {
   try {
     const { id } = req.body;
