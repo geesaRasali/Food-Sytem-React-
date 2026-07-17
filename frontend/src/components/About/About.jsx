@@ -4,8 +4,9 @@
   import aboutDining from "../../assets/about-dining.png"; 
   import aboutVideo from "../../assets/about-video.mp4"; 
   
-  const About = () => { return
-     ( <section className="bg-linear-to-b from-[#fff8f2] via-[#fffaf6] to-[#fffdfb] text-slate-900"> 
+  const About = () => {
+    return (
+      <section className="bg-linear-to-b from-[#fff8f2] via-[#fffaf6] to-[#fffdfb] text-slate-900"> 
      
      {/*VIDEO */} 
      <section className="relative h-[75vh] min-h-125 w-full overflow-hidden"> 
@@ -49,7 +50,8 @@
                 </div> 
                   </div> 
                     </section> 
-                      </section> 
-                      );
-                 }; 
-     export default About;
+    </section>
+  );
+};
+
+export default About;

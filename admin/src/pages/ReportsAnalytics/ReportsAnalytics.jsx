@@ -1024,7 +1024,7 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
             
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
               
-              {/* Card 1: Kitchen Performance */}
+             
               <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm">
                 <div className="flex items-center gap-3.5 mb-5">
                   <div className="p-3 bg-red-500/10 rounded-xl text-red-500 dark:bg-red-500/15">
@@ -1251,13 +1251,13 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
             <div className="mb-6 flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-black tracking-tight text-zinc-950 dark:text-white">Customer Growth &amp; Feedback</h3>
-                <p className="text-xs text-zinc-555 dark:text-zinc-400 mt-0.5">Summary of user acquisitions and messaging ratings</p>
+                <h3 className="text-lg font-black tracking-tight text-zinc-950 dark:text-white">Customer Feedback</h3>
+                <p className="text-xs text-zinc-555 dark:text-zinc-400 mt-0.5">Customer feedback and message summary.</p>
               </div>
               <FiUsers className="w-5 h-5 text-indigo-500" />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="p-4 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-100 dark:border-zinc-850 rounded-2xl flex items-center gap-4">
                 <div className="p-3 bg-indigo-500/10 rounded-xl text-indigo-500">
                   <FiUsers className="w-6 h-6" />
@@ -1265,22 +1265,9 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
                 <div>
                   <span className="text-[10px] text-zinc-400 font-bold uppercase block">Total Customers</span>
                   <span className="text-lg font-black text-zinc-900 dark:text-white leading-tight">{customerAnalytics.totalCustomers}</span>
-                  <span className="text-[10px] text-emerald-600 font-extrabold block mt-0.5">+{customerAnalytics.newCustomersThisMonth} this month</span>
                 </div>
               </div>
 
-              <div className="p-4 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-100 dark:border-zinc-855 rounded-2xl flex items-center gap-4">
-                <div className="p-3 bg-amber-500/10 rounded-xl text-amber-500">
-                  <FiAward className="w-6 h-6" />
-                </div>
-                <div>
-                  <span className="text-[10px] text-zinc-400 font-bold uppercase block">Average Rating</span>
-                  <span className="text-lg font-black text-zinc-900 dark:text-white leading-tight flex items-center gap-1">
-                    {customerAnalytics.averageRating} <span className="text-xs text-zinc-405">/ 5.0</span>
-                  </span>
-                  <span className="text-[10px] text-zinc-400 font-bold block mt-0.5">Based on feedback logs</span>
-                </div>
-              </div>
 
               <div className="p-4 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-100 dark:border-zinc-855 rounded-2xl flex items-center gap-4">
                 <div className="p-3 bg-violet-500/10 rounded-xl text-violet-500">
@@ -1289,20 +1276,10 @@ const ReportsAnalytics = ({ url, adminToken, adminUser }) => {
                 <div>
                   <span className="text-[10px] text-zinc-400 font-bold uppercase block">Customer Messages</span>
                   <span className="text-lg font-black text-zinc-900 dark:text-white leading-tight">{customerAnalytics.totalFeedback} messages</span>
-                  <span className="text-[10px] text-zinc-450 font-semibold block mt-0.5">Customer Messages module</span>
+
                 </div>
               </div>
 
-              <div className="p-4 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-100 dark:border-zinc-855 rounded-2xl flex items-center gap-4">
-                <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-500">
-                  <FiCheckCircle className="w-6 h-6" />
-                </div>
-                <div>
-                  <span className="text-[10px] text-zinc-400 font-bold uppercase block">Satisfaction Index</span>
-                  <span className="text-lg font-black text-zinc-900 dark:text-white leading-tight">96.8%</span>
-                  <span className="text-[10px] text-emerald-600 font-bold block mt-0.5">High positive response</span>
-                </div>
-              </div>
             </div>
           </div>
 

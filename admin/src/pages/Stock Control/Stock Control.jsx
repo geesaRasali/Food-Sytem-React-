@@ -350,7 +350,10 @@ const KitchenTransferList = ({ url, adminToken }) => {
   "Noodles Station",
   "Koththu Station",
   "Vegetarian Station",
-  "Dessert & Bakery Station"
+  "Dessert & Bakery Station",
+  "Fride Rice Station",
+  "Juice Station",
+  "Cake Station"
 ];
 
   const fetchData = async () => {

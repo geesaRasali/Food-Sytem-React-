@@ -653,7 +653,6 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
     return filtered.length > 0 ? filtered : activeOrders;
   }, [activeOrders]);
 
-  // Today's Performance Metrics
   const {
     completedOrdersTodayCount,
     totalOrdersTodayCount,
@@ -678,7 +677,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
     };
   }, [todayOrders]);
 
-  // Top 3 Popular Menu Items for Today
+ 
   const popularMenuItems = useMemo(() => {
     const counts = {};
     todayOrders.forEach((order) => {
@@ -949,16 +948,16 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
             })}
           </div>
 
-          {/* DASHBOARD SPLIT DETAILS */}
+        
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Left Column: Performance & Popular Items */}
+           
             <div className="space-y-8">
-              {/* Today's Performance Card */}
+          
               <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-xs">
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h3 className="text-lg font-black tracking-tight text-zinc-900 dark:text-white">
-                      Today's Performance
+                     Today's Performance
                     </h3>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
                       Kitchen efficiency overview
@@ -1006,7 +1005,6 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
                 </div>
               </div>
 
-              {/* Popular Menu Items Card */}
               <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-xs">
                 <div className="flex items-center justify-between mb-6">
                   <div>
