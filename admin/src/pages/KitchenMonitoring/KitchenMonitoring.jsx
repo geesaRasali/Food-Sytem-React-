@@ -46,7 +46,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All"); // 'All', 'Queued', 'Preparing', 'Ready'
+  const [statusFilter, setStatusFilter] = useState("All");
   const [currentOrdersPage, setCurrentOrdersPage] = useState(1);
   const [currentHistoryPage, setCurrentHistoryPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -84,7 +84,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
     },
   ]);
 
-  // Fetch orders from API
+ 
   const fetchOrders = async () => {
     if (!url) {
       setLoading(false);
@@ -110,7 +110,7 @@ const KitchenMonitoring = ({ url, adminToken, adminUser }) => {
     }
   };
 
-  // Fetch staff list for assignment
+  
   const fetchStaffList = async () => {
     if (!url || !adminToken) return;
     try {

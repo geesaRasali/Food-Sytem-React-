@@ -143,7 +143,7 @@ const Messages = ({ url, adminToken }) => {
           </button>
         </div>
 
-        {/* Filters and Tabs */}
+        
         <div className='flex items-center gap-2 flex-wrap'>
           {[
             { id: 'All', label: 'All Messages', count: totalCount },
@@ -174,7 +174,7 @@ const Messages = ({ url, adminToken }) => {
           })}
         </div>
 
-        {/* Messages List */}
+      
         {isLoading && messages.length === 0 ? (
           <div className='py-20 text-center'>
             <FiRefreshCw className='h-6 w-6 animate-spin mx-auto text-zinc-400 mb-2' />
@@ -238,7 +238,7 @@ const Messages = ({ url, adminToken }) => {
                     {item.message}
                   </div>
 
-                  {/* Response display or inline reply editor */}
+                  
                   {isReplied ? (
                     <div className='flex items-start gap-2.5 bg-zinc-50/55 dark:bg-zinc-850/30 border border-zinc-200 dark:border-zinc-800 p-4 rounded-xl'>
                       <FiCornerDownRight className='w-4 h-4 text-zinc-400 mt-0.5 shrink-0' />
